@@ -1,28 +1,35 @@
 services:
-  api:
+  users-api:
+    container_name: users-api
     build: ./users
     ports:
       - "8080:8080"
     env_file:
       - ./users/.env
     depends_on:
-      - mysql
-      - memcached
-  mysql:
-    image: mysql:latest
+      - mysql-users-api
+    networks:
+      - app-network
+
+  mysql-users-api:
+    image: mysql:9.3
+    container_name: mysql-users-api
+    env_file:
+      - ./users/.env
     restart: unless-stopped
     ports:
       - "3306:3306"
     environment:
-      
+      - MYSQL_ROOT_PASSWORD=${DB_PASS:-root}
+      - MYSQL_DATABASE=${DB_SCHEMA:-users}
     volumes:
-      - ./mongo-init:/docker-entrypoint-initdb.d:ro
-      - mongo_data:/data/db
-  memcached:
-    image: memcached:1.6-alpine
-    restart: unless-stopped
-    command: ["-m", "64"]
-    ports:
-      - "11211:11211"
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
 volumes:
-  mongo_data:
+  mysql_data:

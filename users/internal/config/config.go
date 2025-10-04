@@ -1,12 +1,17 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
-	Port  string
-	MySQL MySQLConfig
+	Port      string
+	MySQL     MySQLConfig
+	JwtSecret string
 }
 
 type MySQLConfig struct {
@@ -18,7 +23,21 @@ type MySQLConfig struct {
 }
 
 func Load() Config {
-	return Config{
+	var secret string
+
+	if secret = getEnv("JWT_SECRET", ""); secret == "" {
+		bytes := make([]byte, 64)
+
+		_, err := rand.Read(bytes)
+		if err != nil {
+			log.Errorf("error al generar bytes aleatorios\nerror: %v\n", err)
+			secret = "jwtsecret"
+		} else {
+			secret = base64.StdEncoding.EncodeToString(bytes)
+		}
+	}
+
+	cfg := Config{
 		Port: getEnv("PORT", "8080"),
 		MySQL: MySQLConfig{
 			DB_USER:   getEnv("DB_USER", "root"),
@@ -27,7 +46,22 @@ func Load() Config {
 			DB_PORT:   getEnv("DB_PORT", "3306"),
 			DB_SCHEMA: getEnv("DB_SCHEMA", "users"),
 		},
+		JwtSecret: secret,
 	}
+
+	log.Infoln("=== variables de entorno ===")
+	log.Infoln()
+	log.Infoln("PORT:", cfg.Port)
+	log.Infoln("DB_USER:", cfg.MySQL.DB_USER)
+	log.Infoln("DB_PASS:", cfg.MySQL.DB_PASS)
+	log.Infoln("DB_HOST:", cfg.MySQL.DB_HOST)
+	log.Infoln("DB_PORT:", cfg.MySQL.DB_PORT)
+	log.Infoln("DB_SCHEMA:", cfg.MySQL.DB_SCHEMA)
+	log.Infoln("JWT_SECRET:", cfg.JwtSecret)
+	log.Infoln()
+	log.Infoln("==================================")
+
+	return cfg
 }
 
 func getEnv(k, def string) string {
