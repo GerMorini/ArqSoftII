@@ -17,6 +17,7 @@ type UsersRepository interface {
 	Create(user dao.User) (dao.User, error)
 	GetUserByUsername(username string) (dao.User, error)
 	GetUserByEmail(email string) (dao.User, error)
+	GetUser(field string, value string) (dao.User, error)
 }
 
 type MySQLUsersRepository struct {
@@ -36,7 +37,7 @@ func NewMySQLUsersRepository(cfg config.MySQLConfig) *MySQLUsersRepository {
 
 		var err error
 		conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger: logger.Default.LogMode(logger.Error),
 		})
 
 		if err != nil {
@@ -82,6 +83,18 @@ func (r *MySQLUsersRepository) GetUserByEmail(email string) (dao.User, error) {
 	err := r.db.Where("email = ?", email).First(&usuario).Error
 	if err != nil {
 		log.Errorf("error al buscar un usuario por su email\nemail: %s\nerror: %v\n", email, err)
+		return dao.User{}, err
+	}
+
+	return usuario, nil
+}
+
+func (r *MySQLUsersRepository) GetUser(field string, value string) (dao.User, error) {
+	var usuario dao.User
+
+	err := r.db.Where(field+" = ?", value).First(&usuario).Error
+	if err != nil {
+		log.Errorf("error al buscar un usuario por %s\nvalue: %s\nerror: %v\n", field, value, err)
 		return dao.User{}, err
 	}
 

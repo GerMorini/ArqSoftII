@@ -28,8 +28,7 @@ func main() {
 	})
 
 	router.POST("/register", userController.Create)
-	router.POST("/login/byusername", userController.LoginByUsername)
-	router.POST("/login/byemail", userController.LoginByEmail)
+	router.POST("/login", userController.Login)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

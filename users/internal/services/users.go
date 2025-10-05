@@ -15,8 +15,7 @@ import (
 )
 
 type UsersService interface {
-	LoginByUsername(username string, password string) (string, error)
-	LoginByEmail(email string, password string) (string, error)
+	Login(loginDTO dto.UserLoginDTO) (string, error)
 	Create(datos dto.UserMinDTO) (dto.UserMinDTO, error)
 
 	GenerateToken(userdata dao.User) (string, error)
@@ -24,6 +23,7 @@ type UsersService interface {
 }
 
 var ErrIncorrectCredentials error = errors.New("credenciales incorrectas")
+var ErrLoginFormat error = errors.New("se debe especificar solo uno de los siguientes: username, email")
 
 type UsersServiceImpl struct {
 	repository repository.UsersRepository
@@ -38,28 +38,24 @@ func NewUsersService(repository repository.UsersRepository, jwtSecret string) Us
 	}
 }
 
-func (s *UsersServiceImpl) LoginByUsername(username string, password string) (string, error) {
-	userdata, err := s.repository.GetUserByUsername(username)
+func (s *UsersServiceImpl) Login(loginDTO dto.UserLoginDTO) (string, error) {
+	var userdata dao.User
+	var err error
+
+	if loginDTO.Email == "" && loginDTO.Username != "" { // si se especifica solo username
+		userdata, err = s.repository.GetUserByUsername(loginDTO.Username)
+	} else if loginDTO.Email != "" && loginDTO.Username == "" { // si se especifica solo el email
+		userdata, err = s.repository.GetUserByEmail(loginDTO.Email)
+	} else {
+		return "", ErrLoginFormat
+	}
+
 	if err != nil {
 		return "", err
 	}
 
-	if calculateSHA256(password) != userdata.Password {
-		log.Debugf("Contraseña incorrecta para el usuario %s@%s\n", username, password)
-		return "", ErrIncorrectCredentials
-	}
-
-	return s.GenerateToken(userdata)
-}
-
-func (s *UsersServiceImpl) LoginByEmail(email string, password string) (string, error) {
-	userdata, err := s.repository.GetUserByEmail(email)
-	if err != nil {
-		return "", err
-	}
-
-	if calculateSHA256(password) != userdata.Password {
-		log.Debugf("Contraseña incorrecta para el usuario %s@%s\n", email, password)
+	if calculateSHA256(loginDTO.Password) != userdata.Password {
+		log.Debugf("Contraseña incorrecta para el usuario %s : %s : %s\n", loginDTO.Username, loginDTO.Email, loginDTO.Password)
 		return "", ErrIncorrectCredentials
 	}
 

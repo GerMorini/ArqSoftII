@@ -16,13 +16,13 @@ curl -i 'localhost:8080/register' -X POST -d '{
 }'
 
 # loggearse por nombre de usuario (genera un token)
-curl -i 'localhost:8080/login/byusername' -X POST -d '{
+curl -i 'localhost:8080/login' -X POST -d '{
     "username": "pgomez31",
     "password": "secreto"
 }'
 
 # loggearse por email (genera un token)
-curl -i 'localhost:8080/login/byemail' -X POST -d '{
+curl -i 'localhost:8080/login' -X POST -d '{
     "email": "pepe.gom@yahoo.com",
     "password": "secreto"
 }'
@@ -37,6 +37,11 @@ openssl rand -hex 64
 
 manipular la base de datos desde el contenedor:
 
-````bash
+```bash
 docker exec -ti mysql-users-api mysql -u root -p users
+```
+
+decodificar partes del token JWT:
+```bash
+echo -n 'TOKEN' | base64 -d
 ```
