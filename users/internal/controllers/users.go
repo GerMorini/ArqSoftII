@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"users/internal/dto"
 	"users/internal/services"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type UsersController struct {
@@ -90,4 +92,27 @@ func (c *UsersController) Create(ctx *gin.Context) {
 		"token_type":   "bearer",
 		"expires_in":   1800, // en segundos
 	})
+}
+
+func (c *UsersController) GetByID(ctx *gin.Context) {
+	id_str := ctx.Param("id")
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		return
+	}
+
+	userData, err := c.service.GetByID(id)
+	if err != nil {
+		log.Errorf("error al buscar un usuario por su ID: %v", err)
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+			return
+		}
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al buscar usuario"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, userData)
 }

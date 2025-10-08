@@ -15,9 +15,9 @@ import (
 
 type UsersRepository interface {
 	Create(user dao.User) (dao.User, error)
+	GetUserByID(id int) (dao.User, error)
 	GetUserByUsername(username string) (dao.User, error)
 	GetUserByEmail(email string) (dao.User, error)
-	GetUser(field string, value string) (dao.User, error)
 }
 
 type MySQLUsersRepository struct {
@@ -65,6 +65,17 @@ func (r *MySQLUsersRepository) Create(user dao.User) (dao.User, error) {
 	return user, nil
 }
 
+func (r *MySQLUsersRepository) GetUserByID(id int) (dao.User, error) {
+	var userData dao.User
+
+	err := r.db.Where("id_usuario = ?", id).First(&userData).Error
+	if err != nil {
+		return dao.User{}, err
+	}
+
+	return userData, nil
+}
+
 func (r *MySQLUsersRepository) GetUserByUsername(username string) (dao.User, error) {
 	var usuario dao.User
 
@@ -83,18 +94,6 @@ func (r *MySQLUsersRepository) GetUserByEmail(email string) (dao.User, error) {
 	err := r.db.Where("email = ?", email).First(&usuario).Error
 	if err != nil {
 		log.Errorf("error al buscar un usuario por su email\nemail: %s\nerror: %v\n", email, err)
-		return dao.User{}, err
-	}
-
-	return usuario, nil
-}
-
-func (r *MySQLUsersRepository) GetUser(field string, value string) (dao.User, error) {
-	var usuario dao.User
-
-	err := r.db.Where(field+" = ?", value).First(&usuario).Error
-	if err != nil {
-		log.Errorf("error al buscar un usuario por %s\nvalue: %s\nerror: %v\n", field, value, err)
 		return dao.User{}, err
 	}
 

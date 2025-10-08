@@ -17,6 +17,7 @@ import (
 type UsersService interface {
 	Login(loginDTO dto.UserLoginDTO) (string, error)
 	Create(datos dto.UserMinDTO) (dto.UserMinDTO, error)
+	GetByID(id int) (dto.UserDTO, error)
 
 	GenerateToken(userdata dao.User) (string, error)
 	GetClaimsFromToken(tokenString string) (jwt.MapClaims, error)
@@ -84,6 +85,24 @@ func (s *UsersServiceImpl) Create(datos dto.UserMinDTO) (dto.UserMinDTO, error) 
 	}
 
 	return datos, err
+}
+
+func (s *UsersServiceImpl) GetByID(id int) (dto.UserDTO, error) {
+	var userData dao.User
+
+	userData, err := s.repository.GetUserByID(id)
+	if err != nil {
+		return dto.UserDTO{}, err
+	}
+
+	return dto.UserDTO{
+		Id:       id,
+		Nombre:   userData.Nombre,
+		Apellido: userData.Apellido,
+		Username: userData.Username,
+		Email:    userData.Email,
+		IsAdmin:  userData.IsAdmin,
+	}, nil
 }
 
 func (s *UsersServiceImpl) GenerateToken(userdata dao.User) (string, error) {

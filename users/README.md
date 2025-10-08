@@ -38,6 +38,12 @@ curl -i 'localhost:8080/login' -X POST -d '{
 }'
 ```
 
+obtener usuario por su ID
+
+```bash
+curl -i 'localhost:8080/users/1'
+```
+
 ## Claims del token JWT
 
 Datos generales:
