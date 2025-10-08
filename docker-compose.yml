@@ -16,7 +16,6 @@ services:
     container_name: mysql-users-api
     env_file:
       - ./users/.env
-    restart: unless-stopped
     ports:
       - "3306:3306"
     environment:

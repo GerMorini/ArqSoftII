@@ -24,20 +24,20 @@ func (c *UsersController) Login(ctx *gin.Context) {
 	var loginDTO dto.UserLoginDTO
 
 	if err := ctx.BindJSON(&loginDTO); err != nil {
-		log.Errorf("error al parsear body al loggear usuaro\nerror: %v\n", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
+		log.Errorf("error al parsear body al loggear usuaro: %v\n", err)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
 		return
 	}
 
 	token, err := c.service.Login(loginDTO)
 	if err != nil {
+		log.Debugf("error al loggear el usuario: %v\n", err)
 		if err == services.ErrIncorrectCredentials || strings.Contains(err.Error(), "record not found") {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales incorrectas"})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Credenciales incorrectas"})
 		} else if err == services.ErrLoginFormat {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		} else {
-			log.Debugf("error al loggear el usuario\nerror: %v\n", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
 			return
 		}
 		return
@@ -80,7 +80,7 @@ func (c *UsersController) Create(ctx *gin.Context) {
 		Password: datos.Password,
 	})
 	if err != nil {
-		log.Debugf("error al loggear al usuario despues de registrarse\nerror: %v\n", err)
+		log.Debugf("error al loggear al usuario despues de registrarse: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
 		return
 	}

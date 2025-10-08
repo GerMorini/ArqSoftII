@@ -22,8 +22,10 @@ type UsersService interface {
 	GetClaimsFromToken(tokenString string) (jwt.MapClaims, error)
 }
 
-var ErrIncorrectCredentials error = errors.New("credenciales incorrectas")
-var ErrLoginFormat error = errors.New("se debe especificar solo uno de los siguientes: username, email")
+var (
+	ErrIncorrectCredentials error = errors.New("credenciales incorrectas")
+	ErrLoginFormat          error = errors.New("se debe especificar solo uno de los siguientes: username, email")
+)
 
 type UsersServiceImpl struct {
 	repository repository.UsersRepository
@@ -55,7 +57,7 @@ func (s *UsersServiceImpl) Login(loginDTO dto.UserLoginDTO) (string, error) {
 	}
 
 	if calculateSHA256(loginDTO.Password) != userdata.Password {
-		log.Debugf("Contraseña incorrecta para el usuario %s : %s : %s\n", loginDTO.Username, loginDTO.Email, loginDTO.Password)
+		log.Debugf("Contraseña incorrecta para el usuario:\nusername: %s\nemail: %s\npassword: %s\n", loginDTO.Username, loginDTO.Email, loginDTO.Password)
 		return "", ErrIncorrectCredentials
 	}
 
@@ -89,6 +91,8 @@ func (s *UsersServiceImpl) GenerateToken(userdata dao.User) (string, error) {
 		"iss":        "users-api",
 		"exp":        time.Now().Add(30 * time.Minute).Unix(),
 		"id_usuario": userdata.Id,
+		"nombre":     userdata.Nombre,
+		"apellido":   userdata.Apellido,
 		"username":   userdata.Username,
 		"email":      userdata.Email,
 		"is_admin":   userdata.IsAdmin,
@@ -99,14 +103,14 @@ func (s *UsersServiceImpl) GenerateToken(userdata dao.User) (string, error) {
 }
 
 func (s *UsersServiceImpl) GetClaimsFromToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil || !token.Valid {
-		log.Errorf("error al parsear el token\nerror: %v\n", err)
+		log.Errorf("error al parsear el token: %v\n", err)
 		return nil, err
 	}
 

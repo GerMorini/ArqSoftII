@@ -1,11 +1,13 @@
 # Users-api
 
-endpoints:
+## Endpoints
 
 ```bash
 # verificar estado de la API
 curl -i 'localhost:8080/healthz'
+```
 
+```bash
 # registrar usuario
 curl -i 'localhost:8080/register' -X POST -d '{
     "nombre": "Pepe",
@@ -14,13 +16,17 @@ curl -i 'localhost:8080/register' -X POST -d '{
     "email": "pepe.gom@yahoo.com",
     "password": "secreto"
 }'
+```
 
+```bash
 # loggearse por nombre de usuario (genera un token)
 curl -i 'localhost:8080/login' -X POST -d '{
     "username": "pgomez31",
     "password": "secreto"
 }'
+```
 
+```bash
 # loggearse por email (genera un token)
 curl -i 'localhost:8080/login' -X POST -d '{
     "email": "pepe.gom@yahoo.com",
@@ -28,20 +34,38 @@ curl -i 'localhost:8080/login' -X POST -d '{
 }'
 ```
 
-generar un JWTSecret de 512 bits para firmar tokens:
+## Claims del token JWT
+
+Datos generales:
+
+- **iss**: emisor del token (users-api)
+- **exp**: tiempo de expiración de 30 min
+
+Datos del usuario:
+
+- **id_usuario**
+- **nombre**
+- **apellido**
+- **username**
+- **email**
+- **is_admin**
+
+## Comandos útiles
+
+Generar un JWTSecret de 512 bits para firmar tokens:
 
 ```bash
 openssl rand -hex 64
-
 ```
 
-manipular la base de datos desde el contenedor:
+Manipular la base de datos desde el contenedor:
 
 ```bash
 docker exec -ti mysql-users-api mysql -u root -p users
 ```
 
-decodificar partes del token JWT:
+Decodificar partes del token JWT:
+
 ```bash
 echo -n 'TOKEN' | base64 -d
 ```
