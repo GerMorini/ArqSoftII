@@ -2,13 +2,15 @@
 
 ## Endpoints
 
+verificar estado de la API
+
 ```bash
-# verificar estado de la API
 curl -i 'localhost:8080/healthz'
 ```
 
+registrar usuario
+
 ```bash
-# registrar usuario
 curl -i 'localhost:8080/register' -X POST -d '{
     "nombre": "Pepe",
     "apellido": "Gomez",
@@ -18,16 +20,18 @@ curl -i 'localhost:8080/register' -X POST -d '{
 }'
 ```
 
+loggearse por nombre de usuario (genera un token)
+
 ```bash
-# loggearse por nombre de usuario (genera un token)
 curl -i 'localhost:8080/login' -X POST -d '{
     "username": "pgomez31",
     "password": "secreto"
 }'
 ```
 
+loggearse por email (genera un token)
+
 ```bash
-# loggearse por email (genera un token)
 curl -i 'localhost:8080/login' -X POST -d '{
     "email": "pepe.gom@yahoo.com",
     "password": "secreto"
