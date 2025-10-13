@@ -1,8 +1,11 @@
-UserInterna:
-    UserID: string?
-    IsAdmin: bool?
+DTO for public:
 
-ClaseInterna:
-    ID: string?
-    InscriptedUsers: string array?
+DTO for API:
+    UserInterna:
+        UserID: string?
+        IsAdmin: bool?
+
+    ClaseInterna:
+        ID: string?
+        InscriptedUsers: string array?
 
