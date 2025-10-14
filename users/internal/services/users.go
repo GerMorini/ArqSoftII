@@ -31,13 +31,13 @@ var (
 type UsersServiceImpl struct {
 	repository repository.UsersRepository
 
-	jwtSecret string
+	jwtSecret []byte
 }
 
 func NewUsersService(repository repository.UsersRepository, jwtSecret string) UsersServiceImpl {
 	return UsersServiceImpl{
 		repository: repository,
-		jwtSecret:  jwtSecret,
+		jwtSecret:  []byte(jwtSecret),
 	}
 }
 
@@ -118,7 +118,7 @@ func (s *UsersServiceImpl) GenerateToken(userdata dao.User) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(s.jwtSecret))
+	return token.SignedString(s.jwtSecret)
 }
 
 func (s *UsersServiceImpl) GetClaimsFromToken(tokenString string) (jwt.MapClaims, error) {
@@ -126,7 +126,7 @@ func (s *UsersServiceImpl) GetClaimsFromToken(tokenString string) (jwt.MapClaims
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
-		return []byte(s.jwtSecret), nil
+		return s.jwtSecret, nil
 	})
 	if err != nil || !token.Valid {
 		log.Errorf("error al parsear el token: %v\n", err)
