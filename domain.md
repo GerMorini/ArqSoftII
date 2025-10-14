@@ -16,7 +16,7 @@
 #### User
 ```go
 type User struct {
-    ID            uint      // Primary Key
+    ID            int      // Primary Key
     Email         string    // unique, not null
     Nombre        string    // not null
     Apellido      string    // not null
@@ -39,10 +39,11 @@ type User struct {
 ---
 
 #### Profesor
+Tienen ganas de implementarlo? es una subclase simplemente.
 ```go
 type Profesor struct {
-    ID              uint   // Primary Key
-    UserID          uint   // Foreign Key -> User (unique)
+    ID              int   // Primary Key
+    UserID          int   // Foreign Key -> User (unique)
     Especialidad    string
     Certificaciones string
 }
@@ -61,11 +62,11 @@ type Profesor struct {
 
 #### Clase
 ```go
-type Clase struct {
+type Activity struct {
     ID                string    // _id (ObjectID)
     Nombre            string    // ej: "Yoga Principiantes"
     Descripcion       string
-    ProfesorID        uint      // FK a Profesor (PostgreSQL)
+    ProfesorID        uint      // FK a Profesor (MySQL)
     DiaSemana         string    // "Lunes", "Martes", etc
     HoraInicio        string    // "09:00"
     HoraFin           string    // "10:30"
