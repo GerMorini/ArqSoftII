@@ -29,10 +29,10 @@ func main() {
 	itemsMongoRepo := repository.NewMongoItemsRepository(ctx, cfg.Mongo.URI, cfg.Mongo.DB, "items")
 
 	// Capa de lógica de negocio: validaciones, transformaciones
-	itemService := services.NewItemsService(itemsMongoRepo)
+	itemService := services.NewItemsService()
 
 	// Capa de controladores: maneja HTTP requests/responses
-	itemController := controllers.NewItemsController(&itemService)
+	itemController := controllers.NewItemsController()
 
 	// Cache (ejercicio: ajustar TTL y agregar "índice" de claves)
 	// cache := cache.NewMemcached(memAddr)
