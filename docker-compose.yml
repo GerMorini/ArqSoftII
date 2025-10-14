@@ -9,7 +9,7 @@ services:
     depends_on:
       - mysql-users-api
     networks:
-      - app-network
+      - microservices
 
   mysql-users-api:
     image: mysql:9.3
@@ -24,10 +24,25 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - app-network
+      - microservices
 
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:5173"
+  #   depends_on:
+  #     - users-api
+  #   networks:
+  #     - api-gateway
+
+  # # para comunicar front y back
+  # api-gateway:
+  #   build: ./api-gateway
+  #   ports: "8080:8080"
 networks:
-  app-network:
+  api-gateway:
+    driver: bridge
+  microservices:
     driver: bridge
 
 volumes:
