@@ -1,0 +1,74 @@
+.header-container {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    color: white;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-title {
+    font-weight: bold;
+    font-size: 1.5rem;
+    background: linear-gradient(45deg, #ffffff, #cccccc);
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-links {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.header-links a,
+.header-links button {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    position: relative;
+}
+
+.header-links a::after,
+.header-links button::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.header-links a:hover::after,
+.header-links button:hover::after {
+    width: 80%;
+}
+
+.header-links a:hover,
+.header-links button:hover {
+    color: #cccccc;
+}
+
+.header-links button {
+
+}

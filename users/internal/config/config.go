@@ -21,9 +21,10 @@ type MySQLConfig struct {
 }
 
 func Load() Config {
-	var secret = getEnv("JWT_SECRET", "")
-	if secret == "" {
-		log.Fatalf("no se pudo iniciar la aplicación, se debe especificar la variable de entorno JWT_SECRET")
+	var secret string
+
+	if secret = getEnv("JWT_SECRET", ""); secret == "" {
+		log.Fatalf("no se pudo iniciar la aplicación, se debe especificar la variable de entorno JWT_SECRET")
 	}
 
 	cfg := Config{
