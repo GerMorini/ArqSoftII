@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Port  string
-	Mongo MongoConfig
+	Port      string
+	Mongo     MongoConfig
+	JwtSecret string
 }
 
 type MongoConfig struct {
@@ -22,13 +23,17 @@ func Load() Config {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found or error loading .env file")
 	}
-
+	var secret = getEnv("JWT_SECRET", "")
+	if secret == "" {
+		log.Fatalf("no se pudo iniciar la aplicación, se debe especificar la variable de entorno JWT_SECRET")
+	}
 	return Config{
 		Port: getEnv("PORT", "8080"),
 		Mongo: MongoConfig{
 			URI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
 			DB:  getEnv("MONGO_DB", "demo"),
 		},
+		JwtSecret: secret,
 	}
 }
 

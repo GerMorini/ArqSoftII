@@ -2,10 +2,12 @@ package repository
 
 import (
 	"activities/internal/dao"
-	"activities/internal/domain"
+	"activities/internal/dto"
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -45,7 +47,7 @@ func NewMongoActivitiesRepository(ctx context.Context, uri, dbName, collectionNa
 }
 
 // List obtiene todos los activities de DB
-func (r *MongoActivitiesRepository) List(ctx context.Context) ([]domain.Activity, error) {
+func (r *MongoActivitiesRepository) List(ctx context.Context) ([]dto.Activity, error) {
 	// ⏰ Timeout para evitar que la operación se cuelgue
 	// Esto es importante en producción para no bloquear indefinidamente
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -66,16 +68,16 @@ func (r *MongoActivitiesRepository) List(ctx context.Context) ([]domain.Activity
 		return nil, err
 	}
 	// Convertir de DAO a Domain
-	domainActivities := make([]domain.Activity, len(daoActivities))
+	dtoActivities := make([]dto.Activity, len(daoActivities))
 	for i, daoAct := range daoActivities {
-		domainActivities[i] = daoAct.ToDomain()
+		dtoActivities[i] = daoAct.ToDomain()
 	}
 
-	return domainActivities, nil
+	return dtoActivities, nil
 }
 
 // Create inserta un nuevo activity en DB
-func (r *MongoActivitiesRepository) Create(ctx context.Context, activity domain.ActivityAdministration) (domain.ActivityAdministration, error) {
+func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	activityDAO := dao.FromDomainDAO(activity) // Convertir a modelo DAO
 
 	activityDAO.ID = primitive.NewObjectID()
@@ -85,44 +87,21 @@ func (r *MongoActivitiesRepository) Create(ctx context.Context, activity domain.
 	_, err := r.col.InsertOne(ctx, activityDAO)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return domain.ActivityAdministration{}, errors.New("activity with the same ID already exists")
+			return dto.ActivityAdministration{}, errors.New("activity with the same ID already exists")
 		}
-		return domain.ActivityAdministration{}, err
+		return dto.ActivityAdministration{}, err
 	}
 
-	return activityDAO.ToDomainAdmin(), nil
-}
-
-// GetByID busca un activity por su ID
-// Consigna 2: Validar que el ID sea un ObjectID válido
-func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (domain.Activity, error) {
-	// Validar que el ID es un ObjectID válido
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return domain.Activity{}, errors.New("invalid ID format")
-	}
-
-	// Buscar en DB
-	var activityDAO dao.ActivityDAO
-	err = r.col.FindOne(ctx, bson.M{"_id": objID}).Decode(&activityDAO)
-	if err != nil {
-		// Manejar caso de no encontrado
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return domain.Activity{}, errors.New("activity not found")
-		}
-		return domain.Activity{}, err
-	}
-
-	return activityDAO.ToDomain(), nil
+	return dao.ToDomainAdministration(activityDAO), nil
 }
 
 // Update actualiza un activity existente
 // Consigna 3: Update parcial + actualizar updatedAt
-func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activity domain.Activity) (domain.Activity, error) {
+func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return domain.Activity{}, errors.New("invalid ID format")
+		return dto.ActivityAdministration{}, errors.New("invalid ID format")
 	}
 
 	// Preparar los campos a actualizar
@@ -147,7 +126,7 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 		set["hora_fin"] = activity.HoraFin
 	}
 	if len(set) == 0 {
-		return domain.Activity{}, errors.New("no fields to update")
+		return dto.ActivityAdministration{}, errors.New("no fields to update")
 	}
 	set["fecha_creacion"] = time.Now().UTC()
 
@@ -156,10 +135,10 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 	// Ejecutar la actualización
 	result, err := r.col.UpdateByID(ctx, objID, update)
 	if err != nil {
-		return domain.Activity{}, err
+		return dto.ActivityAdministration{}, err
 	}
 	if result.MatchedCount == 0 {
-		return domain.Activity{}, errors.New("activity not found")
+		return dto.ActivityAdministration{}, errors.New("activity not found")
 	}
 
 	// Retornar el activity actualizado
@@ -167,7 +146,6 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 }
 
 // Delete elimina un activity por ID
-// Consigna 4: Eliminar documento de DB
 func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error {
 	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -185,4 +163,100 @@ func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error
 	}
 
 	return nil
+}
+
+// GetByID busca un activity por su ID
+// Consigna 2: Validar que el ID sea un ObjectID válido
+func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error) {
+	// Validar que el ID es un ObjectID válido
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return dto.ActivityAdministration{}, errors.New("invalid ID format")
+	}
+
+	// Buscar en DB
+	var activityDAO dao.ActivityDAO
+	err = r.col.FindOne(ctx, bson.M{"_id": objID}).Decode(&activityDAO)
+	if err != nil {
+		// Manejar caso de no encontrado
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return dto.ActivityAdministration{}, errors.New("activity not found")
+		}
+		return dto.ActivityAdministration{}, err
+	}
+
+	return dao.ToDomainAdministration(activityDAO), nil
+}
+
+func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, userID string) (string, error) {
+	// Validar que el ID es un ObjectID válido
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return "", errors.New("invalid ID format")
+	}
+	idint, err := strconv.Atoi(userID)
+	if err != nil {
+		return "", fmt.Errorf("error converting userID to int: %w", err)
+	}
+	act, err := r.GetByID(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("error getting activity from repository: %w", err)
+	}
+	capMax := 0
+	fmt.Sscanf(act.CapacidadMax, "%d", &capMax)
+	if len(act.UsersInscribed) >= (capMax) {
+		return "", errors.New("activity is full")
+	}
+	// check user not already inscribed
+	for _, uid := range act.UsersInscribed {
+		if uid == userID {
+			return "", errors.New("user already inscribed")
+		}
+	}
+	// Ejecutar la actualización
+	update := bson.M{"$push": bson.M{"usuarios_inscritos": idint}}
+	result, err := r.col.UpdateByID(ctx, objID, update)
+	if err != nil {
+		return "", err
+	}
+	if result.MatchedCount == 0 {
+		return "", errors.New("activity not found")
+	}
+	return id, nil
+}
+
+func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string, userID string) (string, error) {
+	// Validar que el ID es un ObjectID válido
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return "", errors.New("invalid ID format")
+	}
+	idint, err := strconv.Atoi(userID)
+	if err != nil {
+		return "", fmt.Errorf("error converting userID to int: %w", err)
+	}
+	act, err := r.GetByID(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("error getting activity from repository: %w", err)
+	}
+	found := false
+	for _, uid := range act.UsersInscribed {
+		if uid == userID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return "", errors.New("user not inscribed in activity")
+	}
+	// Ejecutar la actualización
+	update := bson.M{"$pull": bson.M{"usuarios_inscritos": idint}}
+	result, err := r.col.UpdateByID(ctx, objID, update)
+	if err != nil {
+		return "", err
+	}
+	if result.MatchedCount == 0 {
+		return "", errors.New("activity not found")
+	}
+	return id, nil
 }

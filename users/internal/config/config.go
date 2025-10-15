@@ -1,8 +1,6 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -23,18 +21,9 @@ type MySQLConfig struct {
 }
 
 func Load() Config {
-	var secret string
-
-	if secret = getEnv("JWT_SECRET", ""); secret == "" {
-		bytes := make([]byte, 64)
-
-		_, err := rand.Read(bytes)
-		if err != nil {
-			log.Errorf("error al generar bytes aleatorios\nerror: %v\n", err)
-			secret = "jwtsecret"
-		} else {
-			secret = base64.StdEncoding.EncodeToString(bytes)
-		}
+	var secret = getEnv("JWT_SECRET", "")
+	if secret == "" {
+		log.Fatalf("no se pudo iniciar la aplicación, se debe especificar la variable de entorno JWT_SECRET")
 	}
 
 	cfg := Config{

@@ -1,10 +1,9 @@
 package dao
 
 import (
-	"strconv"
+	"activities/internal/dto"
+	"fmt"
 	"time"
-
-	"activities/internal/domain"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -17,83 +16,71 @@ type ActivityDAO struct {
 	Descripcion       string             `bson:"descripcion"`
 	Profesor          string             `bson:"profesor_id"`
 	DiaSemana         string             `bson:"dia_semana"`
-	HoraInicio        string             `bson:"hora_inicio"`
-	HoraFin           string             `bson:"hora_fin"`
+	HoraInicio        string             `bson:"hora_inicio"` // capaz cambiar a time.Time
+	HoraFin           string             `bson:"hora_fin"`    // capaz cambiar a time.Time
 	UsuariosInscritos []int              `bson:"usuarios_inscritos"`
 	CapacidadMax      int                `bson:"capacidad_max"`
 	Activa            bool               `bson:"activa"`
 	FechaCreacion     time.Time          `bson:"fecha_creacion"`
 }
 
-// ToDomain convierte el modelo de persistencia a domain.Activity
-func (a ActivityDAO) ToDomain() domain.Activity {
-	var idHex string
-	if a.ID != primitive.NilObjectID {
-		idHex = a.ID.Hex()
-	}
-
-	return domain.Activity{
-		ID:           idHex,
-		Nombre:       a.Nombre,
-		Descripcion:  a.Descripcion,
-		Profesor:     a.Profesor,
-		DiaSemana:    a.DiaSemana,
-		HoraInicio:   a.HoraInicio,
-		HoraFin:      a.HoraFin,
-		CapacidadMax: strconv.Itoa(a.CapacidadMax),
+// ToDomain convierte ActivityDAO a Activity (DTO/Domain)
+func (dao ActivityDAO) ToDomain() dto.Activity {
+	return dto.Activity{
+		ID:           dao.ID.Hex(),
+		Nombre:       dao.Nombre,
+		Descripcion:  dao.Descripcion,
+		Profesor:     dao.Profesor,
+		DiaSemana:    dao.DiaSemana,
+		HoraInicio:   dao.HoraInicio,
+		HoraFin:      dao.HoraFin,
+		CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
 	}
 }
 
-// ToDomainAdmin convierte el modelo de persistencia a domain.ActivityAdministration
-func (a ActivityDAO) ToDomainAdmin() domain.ActivityAdministration {
-	var idHex string
-	if a.ID != primitive.NilObjectID {
-		idHex = a.ID.Hex()
+func FromDomainDAO(a dto.ActivityAdministration) ActivityDAO {
+	// Convertir []string de User IDs a []int
+	userIDs := make([]int, len(a.UsersInscribed))
+	for i, idStr := range a.UsersInscribed {
+		var id int
+		fmt.Sscanf(idStr, "%d", &id)
+		userIDs[i] = id
 	}
-	strs := make([]string, len(a.UsuariosInscritos))
-	for i, v := range a.UsuariosInscritos {
-		strs[i] = strconv.Itoa(v)
-	}
-
-	return domain.ActivityAdministration{
-		Activity: domain.Activity{
-			ID:           idHex,
-			Nombre:       a.Nombre,
-			Descripcion:  a.Descripcion,
-			Profesor:     a.Profesor,
-			DiaSemana:    a.DiaSemana,
-			HoraInicio:   a.HoraInicio,
-			HoraFin:      a.HoraFin,
-			CapacidadMax: strconv.Itoa(a.CapacidadMax),
-		},
-		UsersInscribed: strs,
-		FechaCreacion:  a.FechaCreacion,
-	}
-}
-
-// FromDomainDAO convierte domain.Activity a ActivityDAO (para persistencia)
-func FromDomainDAO(d domain.ActivityAdministration) ActivityDAO {
-	var objectID primitive.ObjectID
-	if d.ID != "" {
-		objectID, _ = primitive.ObjectIDFromHex(d.ID)
-	}
-
-	capacidad, err := strconv.Atoi(d.CapacidadMax)
-	if err != nil {
-		capacidad = 0
-	}
-
+	capMax := 0
+	fmt.Sscanf(a.CapacidadMax, "%d", &capMax)
 	return ActivityDAO{
-		ID:                objectID,
-		Nombre:            d.Nombre,
-		Descripcion:       d.Descripcion,
-		Profesor:          d.Profesor,
-		DiaSemana:         d.DiaSemana,
-		HoraInicio:        d.HoraInicio,
-		HoraFin:           d.HoraFin,
-		UsuariosInscritos: nil,
-		CapacidadMax:      capacidad,
-		Activa:            true,
+		// ID se asigna automáticamente en Create si es vacío
+		Nombre:            a.Nombre,
+		Descripcion:       a.Descripcion,
+		Profesor:          a.Profesor,
+		DiaSemana:         a.DiaSemana,
+		HoraInicio:        a.HoraInicio,
+		HoraFin:           a.HoraFin,
+		UsuariosInscritos: userIDs,
+		CapacidadMax:      capMax,
+		Activa:            true, // Por defecto al crear es activa
 		FechaCreacion:     time.Now().UTC(),
+	}
+}
+
+func ToDomainAdministration(dao ActivityDAO) dto.ActivityAdministration {
+	// Convertir []int de User IDs a []string
+	userIDs := make([]string, len(dao.UsuariosInscritos))
+	for i, id := range dao.UsuariosInscritos {
+		userIDs[i] = fmt.Sprintf("%d", id)
+	}
+	return dto.ActivityAdministration{
+		Activity: dto.Activity{
+			ID:           dao.ID.Hex(),
+			Nombre:       dao.Nombre,
+			Descripcion:  dao.Descripcion,
+			Profesor:     dao.Profesor,
+			DiaSemana:    dao.DiaSemana,
+			HoraInicio:   dao.HoraInicio,
+			HoraFin:      dao.HoraFin,
+			CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
+		},
+		UsersInscribed: userIDs,
+		FechaCreacion:  dao.FechaCreacion,
 	}
 }
