@@ -28,7 +28,7 @@ func Load() Config {
 	}
 
 	cfg := Config{
-		Port: getEnv("PORT", "8080"),
+		Port: getEnv("PORT_USERS_API", "8080"),
 		MySQL: MySQLConfig{
 			DB_USER:   getEnv("DB_USER", "root"),
 			DB_PASS:   getEnv("DB_PASS", "root"),

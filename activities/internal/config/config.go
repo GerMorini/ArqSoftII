@@ -29,7 +29,7 @@ func Load() Config {
 	}
 
 	return Config{
-		Port: getEnv("PORT", "8080"),
+		Port: getEnv("PORT_ACTIVIDADES_API", "8080"),
 		Mongo: MongoConfig{
 			URI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
 			DB:  getEnv("MONGO_DB", "demo"),
