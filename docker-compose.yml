@@ -11,6 +11,18 @@ services:
     networks:
       - microservices
 
+  activities-api:
+    container_name: activities-api
+    build: ./activities
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./activities/.env
+    depends_on:
+      - mongo_activities_api
+    networks:
+      - microservices
+
   mysql-users-api:
     image: mysql:9.3
     container_name: mysql-users-api
@@ -26,6 +38,18 @@ services:
     networks:
       - microservices
 
+  mongo_activities_api:
+    image: mongo:8.0
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_DB:-activities}
+    volumes:
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
+      - mongo_data:/data/db
+    networks:
+      - microservices
   # frontend:
   #   build: ./frontend
   #   ports:
@@ -47,3 +71,4 @@ networks:
 
 volumes:
   mysql_data:
+  mongo_data:
