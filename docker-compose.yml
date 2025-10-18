@@ -11,6 +11,21 @@ services:
     networks:
       - microservices
 
+  mysql-users-api:
+    image: mysql:9.3
+    container_name: mysql-users-api
+    env_file:
+      - ./.env
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASS:-root}
+      - MYSQL_DATABASE=${DB_SCHEMA:-users}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - microservices
+  
   activities-api:
     container_name: activities-api
     build: ./activities
@@ -26,21 +41,6 @@ services:
     networks:
       - microservices
 
-  mysql-users-api:
-    image: mysql:9.3
-    container_name: mysql-users-api
-    env_file:
-      - ./.env
-    ports:
-      - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DB_PASS:-root}
-      - MYSQL_DATABASE=${DB_SCHEMA:-users}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - microservices
-
   mongo_activities_api:
     image: mongo:8.0
     restart: unless-stopped
@@ -53,6 +53,7 @@ services:
       - mongo_data:/data/db
     networks:
       - microservices
+
   # frontend:
   #   build: ./frontend
   #   ports:
@@ -67,8 +68,6 @@ services:
   #   build: ./api-gateway
   #   ports: "8080:8080"
 networks:
-  api-gateway:
-    driver: bridge
   microservices:
     driver: bridge
 
