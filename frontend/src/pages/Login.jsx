@@ -1,6 +1,7 @@
 import { useState } from "react";
 import '../styles/Login.css';
 import { useNavigate } from "react-router-dom";
+import config from '../config/env';
 
 const getTokenPayload = (token) => {
     const parts = token.split('.');
@@ -26,7 +27,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const USERS_URL = import.meta.env.VITE_USERS_API;
+    const USERS_URL = config.USERS_URL;
 
     const handlerLogin = async (e) => {
         e.preventDefault();

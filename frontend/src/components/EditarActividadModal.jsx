@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/EditarActividadModal.css';
+import config from '../config/env';
 
 const EditarActividadModal = ({ actividad, onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
     });
     const [error, setError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
-    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
+    const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
     useEffect(() => {
         if (actividad) {

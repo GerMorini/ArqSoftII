@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import EditarActividadModal from '../components/EditarActividadModal';
 import AgregarActividadModal from '../components/AgregarActividadModal';
 import '../styles/AdminPanel.css';
+import config from '../config/env';
 
 const AdminPanel = () => {
     const [actividades, setActividades] = useState([]);
     const [actividadEditar, setActividadEditar] = useState(null);
     const [mostrarAgregarModal, setMostrarAgregarModal] = useState(false);
     const navigate = useNavigate();
-    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
+    const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
     useEffect(() => {
         const isAdmin = localStorage.getItem("isAdmin") === "true";

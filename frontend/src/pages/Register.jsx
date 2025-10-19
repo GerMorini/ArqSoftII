@@ -2,6 +2,7 @@ import { useState } from "react";
 import '../styles/Register.css';
 import { useNavigate } from "react-router-dom";
 import { storeUserSession } from "./Login";
+import config from '../config/env';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -14,7 +15,7 @@ const Register = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
-    const USERS_URL = import.meta.env.VITE_USERS_API;
+    const USERS_URL = config.USERS_URL;
 
     const handleChange = (e) => {
         const { name, value } = e.target;

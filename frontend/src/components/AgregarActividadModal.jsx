@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/Modal.css';
+import config from '../config/env';
 
 const AgregarActividadModal = ({ onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ const AgregarActividadModal = ({ onClose, onSave }) => {
     });
     const [error, setError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
-    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
+    const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
     const validateForm = () => {
         const errors = {};
