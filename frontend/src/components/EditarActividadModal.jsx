@@ -16,6 +16,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
     });
     const [error, setError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
+    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
 
     useEffect(() => {
         if (actividad) {
@@ -100,7 +101,8 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                 cupo: parseInt(formData.cupo, 10)
             };
 
-            const response = await fetch(`http://localhost:8080/actividades/${formData.id_actividad}`, {
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/actividades/${formData.id_actividad}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

@@ -26,6 +26,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
+    const USERS_URL = import.meta.env.VITE_USERS_API;
 
     const handlerLogin = async (e) => {
         e.preventDefault();
@@ -33,7 +34,8 @@ const Login = () => {
         setError("");
 
         try {
-            const response = await fetch('http://localhost:8080/login', {
+            console.log(`USERS_URL = ${USERS_URL}`);
+            const response = await fetch(`${USERS_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

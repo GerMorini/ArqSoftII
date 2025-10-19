@@ -14,6 +14,7 @@ const Register = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
+    const USERS_URL = import.meta.env.VITE_USERS_API;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -35,7 +36,8 @@ const Register = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/register', {
+            console.log(`USERS_URL = ${USERS_URL}`);
+            const response = await fetch(`${USERS_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -15,6 +15,7 @@ const AgregarActividadModal = ({ onClose, onSave }) => {
     });
     const [error, setError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
+    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
 
     const validateForm = () => {
         const errors = {};
@@ -98,7 +99,8 @@ const AgregarActividadModal = ({ onClose, onSave }) => {
                 hora_fin: formData.hora_fin
             };
 
-            const response = await fetch('http://localhost:8080/actividades', {
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/actividades`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

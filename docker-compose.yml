@@ -61,12 +61,8 @@ services:
   #   depends_on:
   #     - users-api
   #   networks:
-  #     - api-gateway
+  #     - microservices
 
-  # # para comunicar front y back
-  # api-gateway:
-  #   build: ./api-gateway
-  #   ports: "8080:8080"
 networks:
   microservices:
     driver: bridge

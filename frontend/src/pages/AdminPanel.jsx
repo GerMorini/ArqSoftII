@@ -9,6 +9,7 @@ const AdminPanel = () => {
     const [actividadEditar, setActividadEditar] = useState(null);
     const [mostrarAgregarModal, setMostrarAgregarModal] = useState(false);
     const navigate = useNavigate();
+    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
 
     useEffect(() => {
         const isAdmin = localStorage.getItem("isAdmin") === "true";
@@ -21,7 +22,8 @@ const AdminPanel = () => {
 
     const fetchActividades = async () => {
         try {
-            const response = await fetch('http://localhost:8080/actividades');
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/actividades`);
             if (response.ok) {
                 const data = await response.json();
                 setActividades(data);
@@ -54,7 +56,8 @@ const AdminPanel = () => {
 
         if (window.confirm('¿Estás seguro de que deseas eliminar esta actividad? Se eliminarán también todas las inscripciones asociadas.')) {
             try {
-                const response = await fetch(`http://localhost:8080/actividades/${actividad.id_actividad}`, {
+                console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+                const response = await fetch(`${ACTIVITIES_URL}/actividades/${actividad.id_actividad}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,

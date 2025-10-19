@@ -18,6 +18,7 @@ const Actividades = () => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const isAdmin = localStorage.getItem("isAdmin") === "true";
     const navigate = useNavigate();
+    const ACTIVITIES_URL = import.meta.env.VITE_ACTIVITIES_URL;
 
     useEffect(() => {
         fetchActividades();
@@ -30,7 +31,8 @@ const Actividades = () => {
 
     const fetchActividades = async () => {
         try {
-            const response = await fetch("http://localhost:8080/actividades");
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/actividades`);
             if (response.ok) {
                 const data = await response.json();
                 console.log("Actividades cargadas:", data);
@@ -44,7 +46,8 @@ const Actividades = () => {
     
     const fetchInscripciones = async () => {
         try {
-            const response = await fetch("http://localhost:8080/inscripciones", {
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
                 headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             },
             });
@@ -113,7 +116,8 @@ const Actividades = () => {
         }
 
         try {
-            const response = await fetch("http://localhost:8080/inscripciones", {
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -143,7 +147,8 @@ const Actividades = () => {
     
     const handleUnenrolling = async (id_actividad) => {
         try {
-            const response = await fetch("http://localhost:8080/inscripciones", {
+            console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -191,7 +196,8 @@ const Actividades = () => {
         if (window.confirm('¿Estás seguro de que deseas eliminar esta actividad?')) {
             try {
                 console.log("Intentando eliminar actividad con ID:", actividad.id_actividad);
-                const response = await fetch(`http://localhost:8080/actividades/${actividad.id_actividad}`, {
+                console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
+                const response = await fetch(`${ACTIVITIES_URL}/actividades/${actividad.id_actividad}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
