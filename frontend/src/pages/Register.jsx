@@ -8,6 +8,7 @@ const Register = () => {
     const [formData, setFormData] = useState({
         nombre: "",
         apellido: "",
+        email: "",
         username: "",
         password: "",
         confirmPassword: ""
@@ -35,6 +36,13 @@ const Register = () => {
             setIsLoading(false);
             return;
         }
+        
+        // regex para validación de email
+        if (! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            setError("El email ingresado no es válido");
+            setIsLoading(false);
+            return;
+        }
 
         try {
             console.log(`USERS_URL = ${USERS_URL}`);
@@ -46,6 +54,7 @@ const Register = () => {
                 body: JSON.stringify({
                     nombre: formData.nombre.trim(),
                     apellido: formData.apellido.trim(),
+                    email: formData.email.trim(),
                     username: formData.username.trim(),
                     password: formData.password
                 })
@@ -107,12 +116,24 @@ const Register = () => {
                         required
                     />
                 </div>
+                
+                <div className="input-group">
+                    <input
+                        type="text"
+                        name="email"
+                        placeholder="Correo electrónico"
+                        value={formData.email}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        required
+                    />
+                </div>
 
                 <div className="input-group">
                     <input
                         type="text"
                         name="username"
-                        placeholder="Usuario"
+                        placeholder="Nombre de usuario"
                         value={formData.username}
                         onChange={handleChange}
                         disabled={isLoading}

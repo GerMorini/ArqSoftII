@@ -33,7 +33,7 @@ const Actividades = () => {
     const fetchActividades = async () => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/actividades`);
+            const response = await fetch(`${ACTIVITIES_URL}/activities`);
             if (response.ok) {
                 const data = await response.json();
                 console.log("Actividades cargadas:", data);
@@ -48,7 +48,7 @@ const Actividades = () => {
     const fetchInscripciones = async () => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
+            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
                 headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             },
             });
@@ -118,7 +118,7 @@ const Actividades = () => {
 
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
+            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -149,7 +149,7 @@ const Actividades = () => {
     const handleUnenrolling = async (id_actividad) => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscripciones`, {
+            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
