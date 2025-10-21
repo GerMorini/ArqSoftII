@@ -28,12 +28,12 @@ func NewMySQLUsersRepository(cfg config.MySQLConfig) *MySQLUsersRepository {
 	var conn *gorm.DB
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.DB_USER, cfg.DB_PASS, cfg.DB_HOST, cfg.DB_PORT, cfg.DB_SCHEMA)
-	log.Info("Conectando a la base de datos con dsn: ", dsn)
+	log.Info("conectando a la base de datos con dsn: ", dsn)
 
 	// reintentamos conectarnos a la BDD varias veces
 	for i := range 10 {
 		time.Sleep(3 * time.Second)
-		log.Debugf("Intentando conectar (%d/%d)\n", i+1, 10)
+		log.Warnf("Intentando conectar (%d/%d)\n", i+1, 10)
 
 		var err error
 		conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
@@ -41,8 +41,8 @@ func NewMySQLUsersRepository(cfg config.MySQLConfig) *MySQLUsersRepository {
 		})
 
 		if err != nil {
-			log.Errorf("Error al conectar a la base de datos: %v\n", err)
-			log.Error("No se pudo establecer conexion a la BDD")
+			log.Errorf("error al conectar a la base de datos: %v\n", err)
+			log.Error("no se pudo establecer conexion a la BDD")
 			continue
 		}
 

@@ -58,7 +58,6 @@ func (s *UsersServiceImpl) Login(loginDTO dto.UserLoginDTO) (string, error) {
 	}
 
 	if calculateSHA256(loginDTO.Password) != userdata.Password {
-		log.Debugf("Contraseña incorrecta para el usuario:\nusername: %s\nemail: %s\npassword: %s\n", loginDTO.Username, loginDTO.Email, loginDTO.Password)
 		return "", ErrIncorrectCredentials
 	}
 

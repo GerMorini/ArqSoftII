@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 	"users/internal/config"
@@ -9,6 +8,8 @@ import (
 	"users/internal/middleware"
 	"users/internal/repository"
 	"users/internal/services"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,7 +38,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Printf("🚀 API listening on port %s", cfg.Port)
+	log.Infof("🚀 API listening on port %s", cfg.Port)
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
