@@ -55,7 +55,7 @@ func main() {
 	// POST /activities - crear nuevo activity (protegido)
 	router.POST("/activities", middleware.AuthMiddleware(cfg.JwtSecret), activityController.CreateActivity)
 
-	// GET /activities/:id - obtener activity por ID
+	// GET /activities/:id - obtener activity por ID (solo admin, capaz cambiar para ambos roles)
 	router.GET("/activities/:id", activityController.GetActivityByID)
 
 	// PUT /activities/:id - actualizar activity existente (protegido)

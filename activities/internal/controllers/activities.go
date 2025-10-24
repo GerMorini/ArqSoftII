@@ -99,6 +99,16 @@ func (c *ActivitiesController) CreateActivity(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
 		return
 	}
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can create activities"})
+		return
+	}
 	created, err := c.service.Create(ctx.Request.Context(), newAct)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create activity", "details": err.Error()})
@@ -113,6 +123,16 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID parameter is required"})
+		return
+	}
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can view activity by ID"})
 		return
 	}
 
@@ -215,6 +235,17 @@ func (c *ActivitiesController) UpdateActivity(ctx *gin.Context) {
 		return
 	}
 
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update activities"})
+		return
+	}
+
 	updated, err := c.service.Update(ctx.Request.Context(), id, toUpdate)
 	if err != nil {
 		if err.Error() == "activity not found" {
@@ -233,6 +264,17 @@ func (c *ActivitiesController) DeleteActivity(ctx *gin.Context) {
 	id := ctx.Param("id")
 	if id == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID parameter is required"})
+		return
+	}
+
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can delete activities"})
 		return
 	}
 

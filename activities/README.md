@@ -7,6 +7,7 @@ verificar estado de la API
 ```bash
 curl -i 'localhost:8081/healthz'
 ```
+### Todos los endpoints estan en postman para testear.
 
 listar actividades
 
@@ -80,6 +81,65 @@ curl -i "localhost:8081/activities/$ID/desinscribir" -X POST \
 ```
 
 > Nota: el puerto por defecto es 8080. Se puede cambiar con la variable `PORT_ACTIVIDADES_API`.
+
+## Rápido (Docker Compose)
+
+Si usas el repo con Docker Compose (recomendado para pruebas locales):
+
+1. Desde la raíz del repo ejecutar:
+
+```powershell
+docker compose -f .\docker-compose.yml up -d --build
+```
+
+2. Espera a que el contenedor de Mongo esté listo antes de que `activities-api` intente conectarse. Revisa logs:
+
+```powershell
+docker compose -f .\docker-compose.yml logs -f mongo_activities_api
+docker compose -f .\docker-compose.yml logs -f activities-api
+```
+
+En la configuración de compose `activities` expone por defecto el puerto `8081` en el host (para evitar conflicto con `users-api` que usa `8080`). Ajusta `baseUrl` según tu compose si es necesario.
+
+## Autenticación (resumen)
+
+Los endpoints protegidos requieren la cabecera HTTP:
+
+  Authorization: Bearer <TOKEN>
+
+El token lo obtienes con `POST /login` del servicio `users` y tiene 30 minutos de validez.
+
+Claims incluidos en el token (generado por `users`):
+
+- iss: "users-api"
+- exp: expiración (Unix timestamp)
+- id_usuario
+- nombre
+- apellido
+- username
+- email
+- is_admin
+
+Reglas específicas en Activities:
+
+- `POST /activities`, `PUT /activities/:id`, `DELETE /activities/:id` requieren token válido.
+- `POST /activities/:id/inscribir` y `POST /activities/:id/desinscribir` requieren token válido y que `is_admin` sea `false`.
+
+## Postman / pruebas
+
+He incluido una colección Postman lista para importar en:
+
+`postman_collections/activities_postman_collection.json`
+
+Importa la colección y ejecuta: primero `Users / Register` (opcional), luego `Users / Login` (guarda el token), y después las peticiones de `Activities` (Create guarda `activityId`).
+
+## Notas y recomendaciones
+
+- No guardes secretos (p.ej. `JWT_SECRET`) en repositorios públicos. Para entornos de producción usa Docker secrets o un gestor de secretos.
+- En los contenedores, `MONGO_URI` debe apuntar al servicio de Compose (p.ej. `mongodb://mongo_activities_api:27017`), NO a `localhost`.
+- Si cambias las imágenes base en los Dockerfiles a `latest`, ten en cuenta que esto puede alterar reproducibilidad; en producción prefiero tags fijos.
+
+Si quieres que añada ejemplos automáticos (scripts bash/PowerShell) para ejecutar la secuencia completa (register → login → create → inscribir → desinscribir → delete), lo agrego en `tools/`.
 
 ## Autenticación
 
