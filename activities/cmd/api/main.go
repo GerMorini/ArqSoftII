@@ -52,7 +52,6 @@ func main() {
 	// GET /activities - listar todos los activities (✅ implementado)
 	router.GET("/activities", activityController.GetActivities)
 
-	// TODO: Implementar la lógica de estos endpoints (actualmente retornan 501)
 	// POST /activities - crear nuevo activity (protegido)
 	router.POST("/activities", middleware.AuthMiddleware(cfg.JwtSecret), activityController.CreateActivity)
 

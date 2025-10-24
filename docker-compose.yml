@@ -33,9 +33,6 @@ services:
       - "8081:8080"
     env_file:
       - ./.env
-    environment:
-      - MONGO_URI=mongodb://mongo_activities_api:27017
-      - MONGO_DB=${MONGO_DB:-activities}
     depends_on:
       - mongo_activities_api
     networks:
