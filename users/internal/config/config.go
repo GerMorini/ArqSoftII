@@ -26,7 +26,7 @@ func Load() Config {
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:     true,
 		FullTimestamp:   true,
-		TimestampFormat: "02/01/2006-15:04:05:000",
+		TimestampFormat: "02/01/2006-15:04:05.000",
 	})
 
 	var secret string

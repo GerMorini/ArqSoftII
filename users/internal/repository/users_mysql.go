@@ -81,7 +81,6 @@ func (r *MySQLUsersRepository) GetUserByUsername(username string) (dao.User, err
 
 	err := r.db.Where("username = ?", username).First(&usuario).Error
 	if err != nil {
-		log.Errorf("error al buscar un usuario por su nombre\nusername: %s\nerror: %v\n", username, err)
 		return dao.User{}, err
 	}
 
@@ -93,7 +92,6 @@ func (r *MySQLUsersRepository) GetUserByEmail(email string) (dao.User, error) {
 
 	err := r.db.Where("email = ?", email).First(&usuario).Error
 	if err != nil {
-		log.Errorf("error al buscar un usuario por su email\nemail: %s\nerror: %v\n", email, err)
 		return dao.User{}, err
 	}
 
