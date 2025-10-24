@@ -12,8 +12,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
         hora_inicio: '',
         hora_fin: '',
         foto_url: '',
-        instructor: '',
-        categoria: ''
+        instructor: ''
     });
     const [error, setError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
@@ -31,8 +30,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                 hora_inicio: actividad.hora_inicio || '',
                 hora_fin: actividad.hora_fin || '',
                 foto_url: actividad.foto_url || '',
-                instructor: actividad.instructor || '',
-                categoria: actividad.categoria || ''
+                instructor: actividad.instructor || ''
             };
             setFormData(actividadData);
         }
@@ -71,10 +69,6 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
 
         if (!formData.instructor.trim()) {
             errors.instructor = 'El instructor es requerido';
-        }
-
-        if (!formData.categoria.trim()) {
-            errors.categoria = 'La categoría es requerida';
         }
 
         setValidationErrors(errors);
@@ -240,20 +234,6 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             required
                         />
                         {validationErrors.instructor && <span className="error-text">{validationErrors.instructor}</span>}
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="categoria">Categoría:</label>
-                        <input
-                            type="text"
-                            id="categoria"
-                            name="categoria"
-                            value={formData.categoria}
-                            onChange={handleChange}
-                            placeholder="Ej: Musculación, Cardio, Yoga..."
-                            required
-                        />
-                        {validationErrors.categoria && <span className="error-text">{validationErrors.categoria}</span>}
                     </div>
 
                     <div className="form-buttons">

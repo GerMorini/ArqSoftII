@@ -12,12 +12,13 @@ const Actividades = () => {
     const [expandedActividadId, setExpandedActividadId] = useState(null);
     const [filtros, setFiltros] = useState({
         busqueda: "",
-        categoria: "",
+        descripcion: "",
         dia: "",
         soloInscripto: false
     });
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const isAdmin = localStorage.getItem("isAdmin") === "true";
+    const idUsuario = localStorage.getItem("idUsuario")
     const navigate = useNavigate();
     const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
@@ -37,25 +38,26 @@ const Actividades = () => {
             if (response.ok) {
                 const data = await response.json();
                 console.log("Actividades cargadas:", data);
-                setActividades(data);
-                setActividadesFiltradas(data);
+                setActividades(data.activities);
+                setActividadesFiltradas(data.activities);
             }
         } catch (error) {
             console.error("Error al cargar actividades:", error);
         }
     };
-    
+
     const fetchInscripciones = async () => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
-                headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            },
+            const response = await fetch(`${ACTIVITIES_URL}/inscriptions/${idUsuario}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
             });
             if (response.ok) {
                 const resp = await response.json();
-                const data = resp.filter(insc => insc.is_activa)
-                
+                const data = resp.inscripciones
+
                 console.log("Inscripciones cargadas:", data);
                 setInscripciones(data);
             }
@@ -85,10 +87,10 @@ const Actividades = () => {
         }
 
         // Filtrar por categoría (ahora como búsqueda de texto)
-        if (filtros.categoria) {
-            const categoriaLower = filtros.categoria.toLowerCase();
+        if (filtros.descripcion) {
+            const descLower = filtros.descripcion.toLowerCase();
             actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                actividad.categoria.toLowerCase().includes(categoriaLower)
+                actividad.descripcion.toLowerCase().includes(descLower)
             );
         }
 
@@ -101,9 +103,8 @@ const Actividades = () => {
 
         // Filtrar solo inscripto
         if (filtros.soloInscripto) {
-            const idsInscripto = inscripciones.filter(insc => insc.is_activa).map(insc => insc.id_actividad);
             actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                idsInscripto.includes(actividad.id_actividad)
+                inscripciones.includes(actividad.id_actividad)
             );
         }
 
@@ -118,15 +119,11 @@ const Actividades = () => {
 
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
+            const response = await fetch(`${ACTIVITIES_URL}/activities/${actividadId}/inscribir`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-                },
-                body: JSON.stringify({
-                    id: actividadId,
-                }),
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                }
             });
 
             const data = await response.json();
@@ -145,22 +142,18 @@ const Actividades = () => {
             alert(error.message);
         }
     };
-    
+
     const handleUnenrolling = async (id_actividad) => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/inscriptions`, {
-                method: 'DELETE',
+            const response = await fetch(`${ACTIVITIES_URL}/activities/${id_actividad}/desinscribir`, {
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                },
-                body: JSON.stringify({
-                    id: parseInt(id_actividad)
-                })
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
             });
 
-            if (response.status == 204) {
+            if (response.status == 200) {
                 alert(`Desinscripto exitosamente`);
                 fetchInscripciones();
             } else {
@@ -198,11 +191,10 @@ const Actividades = () => {
             try {
                 console.log("Intentando eliminar actividad con ID:", actividad.id_actividad);
                 console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-                const response = await fetch(`${ACTIVITIES_URL}/actividades/${actividad.id_actividad}`, {
+                const response = await fetch(`${ACTIVITIES_URL}/activities/${actividad.id_actividad}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
                     }
                 });
 
@@ -221,10 +213,7 @@ const Actividades = () => {
     };
 
     const estaInscripto = (id_actividad) => {
-        return inscripciones.some(insc => 
-            insc.id_actividad === id_actividad &&
-            insc.is_activa
-        )
+        return inscripciones.includes(id_actividad)
     };
 
     const toggleExpand = (actividadId) => {
@@ -250,9 +239,9 @@ const Actividades = () => {
                 </div>
                 <input
                     type="text"
-                    name="categoria"
-                    placeholder="Categoría..."
-                    value={filtros.categoria}
+                    name="descripcion"
+                    placeholder="Descripción..."
+                    value={filtros.descripcion}
                     onChange={handleFiltroChange}
                     className="filtro-input"
                 />
@@ -298,8 +287,8 @@ const Actividades = () => {
                     </div>
                 ) : (
                     actividadesFiltradas.map((actividad) => (
-                        <div 
-                            className={`actividad-card ${expandedActividadId === actividad.id_actividad ? 'expanded' : ''}`} 
+                        <div
+                            className={`actividad-card ${expandedActividadId === actividad.id_actividad ? 'expanded' : ''}`}
                             key={actividad.id_actividad}
                         >
                             <h3>{actividad.titulo}</h3>
@@ -313,14 +302,13 @@ const Actividades = () => {
                             {expandedActividadId === actividad.id_actividad && (
                                 <div className="actividad-info-expanded">
                                     <div className="actividad-imagen">
-                                        <img 
-                                            src={actividad.foto_url || "https://via.placeholder.com/300x200"} 
+                                        <img
+                                            src={actividad.foto_url || "https://via.placeholder.com/300x200"}
                                             alt={actividad.titulo}
                                         />
                                     </div>
                                     <div className="actividad-detalles">
                                         <p>{actividad.descripcion}</p>
-                                        <p>Categoría: {actividad.categoria || "No especificada"}</p>
                                         <p>Día: {actividad.dia || "No especificado"}</p>
                                         <p><b>Horario:</b> {actividad.hora_inicio} a {actividad.hora_fin}</p>
                                         <p>Cupo total: {actividad.cupo} | Lugares disponibles: {actividad.lugares}</p>
@@ -353,8 +341,8 @@ const Actividades = () => {
                                         ) : (
                                             <button
                                                 className="inscripcion-button"
-                                                onClick={() => 
-                                                    estaInscripto(actividad.id_actividad) ? 
+                                                onClick={() =>
+                                                    estaInscripto(actividad.id_actividad) ?
                                                         handleUnenrolling(actividad.id_actividad) :
                                                         handleEnroling(actividad.id_actividad)
                                                 }

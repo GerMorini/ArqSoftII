@@ -3,14 +3,14 @@ package dto
 import "time"
 
 type Activity struct {
-	ID           string // _id (ObjectID)
-	Nombre       string // ej: "Yoga Principiantes"
-	Descripcion  string
-	Profesor     string // FK a Profesor (MySQL)
-	DiaSemana    string // "Lunes", "Martes", etc
-	HoraInicio   string // "09:00"
-	HoraFin      string // "10:30"
-	CapacidadMax string
+	ID           string `json:"id_actividad"`
+	Nombre       string `json:"titulo"`
+	Descripcion  string `json:"descripcion"`
+	Profesor     string `json:"instructor"`
+	DiaSemana    string `json:"dia"`
+	HoraInicio   string `json:"hora_inicio"`
+	HoraFin      string `json:"hora_fin"`
+	CapacidadMax string `json:"cupo"`
 }
 
 type Activities []Activity

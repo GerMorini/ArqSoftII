@@ -113,7 +113,6 @@ const AdminPanel = () => {
                                 <td>{actividad.titulo}</td>
                                 <td>{actividad.descripcion}</td>
                                 <td>{actividad.instructor}</td>
-                                <td>{actividad.categoria}</td>
                                 <td>{actividad.dia}</td>
                                 <td>{actividad.hora_inicio} - {actividad.hora_fin}</td>
                                 <td>{actividad.cupo - actividad.lugares} / {actividad.cupo}</td>
