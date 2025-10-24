@@ -17,6 +17,7 @@ type ActivitiesRepository interface {
 	Delete(ctx context.Context, id string) error
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
+	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
 }
 
 // ActivitiesService define la capa de servicios usada por controllers
@@ -28,6 +29,7 @@ type ActivitiesService interface {
 	Delete(ctx context.Context, id string) error
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
+	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
 }
 
 // ActivitiesServiceImpl implementa ActivitiesService
@@ -154,4 +156,9 @@ func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) e
 
 	// Más validaciones pueden agregarse aquí (horarios, profesor, etc.)
 	return nil
+}
+
+// GetInscripcionesByUserID obtiene las actividades inscritas por un usuario
+func (s *ActivitiesServiceImpl) GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error) {
+	return s.repository.GetInscripcionesByUserID(ctx, userID)
 }

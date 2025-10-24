@@ -260,3 +260,29 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 	}
 	return id, nil
 }
+
+func (r *MongoActivitiesRepository) GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error) {
+	idint, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error converting userID to int: %w", err)
+	}
+	// Buscar en DB
+	cur, err := r.col.Find(ctx, bson.M{"usuarios_inscritos": idint})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx) // ⚠️ IMPORTANTE: Siempre cerrar el cursor para liberar recursos
+
+	// 📦 Decodificar resultados en slice de DAO (modelo DB)
+	// Usamos el modelo DAO porque maneja ObjectID y tags BSON
+	var daoActivities []dao.ActivityDAO
+	if err := cur.All(ctx, &daoActivities); err != nil {
+		return nil, err
+	}
+	// Convertir de DAO a Domain
+	activityIDs := make([]string, len(daoActivities))
+	for i, daoAct := range daoActivities {
+		activityIDs[i] = daoAct.ID.Hex()
+	}
+	return activityIDs, nil
+}

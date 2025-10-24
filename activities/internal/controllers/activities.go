@@ -19,6 +19,7 @@ type ActivitiesService interface {
 	Delete(ctx context.Context, id string) error
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
+	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
 }
 
 // ActivitiesController maneja las peticiones HTTP para Activities
@@ -245,4 +246,34 @@ func (c *ActivitiesController) DeleteActivity(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// GetInscripcionesByUserID maneja GET /inscripciones/:userId
+func (c *ActivitiesController) GetInscripcionesByUserID(ctx *gin.Context) {
+	userID := ctx.Param("userId")
+	if userID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "userId parameter is required"})
+		return
+	}
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	requesterID, ok := getUserIDFromClaims(claims)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id in token claims"})
+		return
+	}
+	// Only allow users to fetch their own inscripciones unless admin
+	if requesterID != userID && !isAdminFromClaims(claims) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "cannot access other user's inscripciones"})
+		return
+	}
+	inscripciones, err := c.service.GetInscripcionesByUserID(ctx.Request.Context(), userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"user_id": userID, "inscripciones": inscripciones, "count": len(inscripciones)})
 }
