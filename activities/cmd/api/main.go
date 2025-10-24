@@ -70,8 +70,8 @@ func main() {
 	// POST /activities/:id/desinscribir - desinscribir usuario (protegido)
 	router.POST("/activities/:id/desinscribir", middleware.AuthMiddleware(cfg.JwtSecret), activityController.Desinscribir)
 
-	// GET /inscripciones/:userId - obtener actividades inscritas por usuario (protegido)
-	router.GET("/inscripciones/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscripcionesByUserID)
+	// GET /inscriptions/:userId - obtener actividades inscritas por usuario (protegido)
+	router.GET("/inscriptions/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscripcionesByUserID)
 
 	// Configuración del server HTTP
 	srv := &http.Server{

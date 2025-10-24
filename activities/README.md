@@ -32,10 +32,10 @@ curl -i 'localhost:8081/activities' -X POST \
     "nombre": "Yoga Principiantes",
     "descripcion": "Clase suave para iniciar",
     "profesor": "12",               
-    "dia_semana": "Lunes",
-    "hora_inicio": "09:00",
-    "hora_fin": "10:00",
-    "capacidad_max": "25"
+    "diaSemana": "Lunes",
+    "horaInicio": "09:00",
+    "horaFin": "10:00",
+    "capacidadMax": "25"
 }'
 ```
 
@@ -49,7 +49,7 @@ curl -i "localhost:8081/activities/$ID" -X PUT \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
     "descripcion": "Clase actualizada",
-    "hora_fin": "10:30"
+    "horaFin": "10:30"
 }'
 ```
 
@@ -59,6 +59,15 @@ eliminar actividad (requiere JWT en Authorization)
 TOKEN='...'
 ID='64f1a6a1e4b0f1234567890a'
 curl -i "localhost:8081/activities/$ID" -X DELETE \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+consultar actividades a las que se está inscripto (requiere JWT de usuario no admin)
+
+```bash
+TOKEN='...'
+ID=2
+curl -i "localhost:8081/inscriptions/$ID" -X POST \
   -H "Authorization: Bearer $TOKEN"
 ```
 

@@ -40,7 +40,6 @@ services:
 
   mongo_activities_api:
     image: mongo:8.0
-    restart: unless-stopped
     ports:
       - "27017:27017"
     environment:

@@ -18,6 +18,14 @@ type MongoConfig struct {
 }
 
 func Load() Config {
+	log.SetOutput(os.Stderr)
+	// log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "02/01/2006-15:04:05.000",
+	})
+
 	var secret = getEnv("JWT_SECRET", "")
 	if secret == "" {
 		log.Fatalf("no se pudo iniciar la aplicación, se debe especificar la variable de entorno JWT_SECRET")
