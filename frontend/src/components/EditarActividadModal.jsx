@@ -19,6 +19,14 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
     const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
     useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleEscape);
+
         if (actividad) {
             // Asegurarse de que todos los campos necesarios estén presentes y que el cupo sea un número
             const actividadData = {
@@ -34,11 +42,15 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
             };
             setFormData(actividadData);
         }
+
+        return () => {
+            window.removeEventListener('keydown', handleEscape);
+        };
     }, [actividad]);
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.titulo.trim()) {
             errors.titulo = 'El título es requerido';
         } else if (formData.titulo.length < 3) {
@@ -67,6 +79,10 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
             errors.hora_fin = 'La hora de fin debe ser posterior a la hora de inicio';
         }
 
+        if (formData.foto_url && !formData.foto_url.match(/^https?:\/\/.+/)) {
+            errors.foto_url = 'La URL debe ser válida (comenzar con http:// o https://)';
+        }
+
         if (!formData.instructor.trim()) {
             errors.instructor = 'El instructor es requerido';
         }
@@ -93,11 +109,11 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
             // Asegurarse de que el cupo sea un número antes de enviar
             const dataToSend = {
                 ...formData,
-                cupo: parseInt(formData.cupo, 10)
+                cupo: formData.cupo.toString()
             };
 
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/actividades/${formData.id_actividad}`, {
+            const response = await fetch(`${ACTIVITIES_URL}/activities/${formData.id_actividad}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -178,7 +194,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             <option value="Miercoles">Miercoles</option>
                             <option value="Jueves">Jueves</option>
                             <option value="Viernes">Viernes</option>
-                            <option value="Sabado">Sabado</option>
+                            <option value="Sábado">Sabado</option>
                             <option value="Domingo">Domingo</option>
                         </select>
                         {validationErrors.dia && <span className="error-text">{validationErrors.dia}</span>}
@@ -192,6 +208,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             name="hora_inicio"
                             value={formData.hora_inicio}
                             onChange={handleChange}
+                            step="900"
                             required
                         />
                         {validationErrors.hora_inicio && <span className="error-text">{validationErrors.hora_inicio}</span>}
@@ -205,6 +222,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             name="hora_fin"
                             value={formData.hora_fin}
                             onChange={handleChange}
+                            step="900"
                             required
                         />
                         {validationErrors.hora_fin && <span className="error-text">{validationErrors.hora_fin}</span>}

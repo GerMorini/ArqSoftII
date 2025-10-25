@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import EditarActividadModal from '../components/EditarActividadModal';
+import ActivityCard from '../components/ActivityCard';
 import "../styles/Actividades.css";
 import { useNavigate } from "react-router-dom";
 import config from '../config/env';
@@ -216,10 +217,6 @@ const Actividades = () => {
         return inscripciones.includes(id_actividad)
     };
 
-    const toggleExpand = (actividadId) => {
-        setExpandedActividadId(expandedActividadId === actividadId ? null : actividadId);
-    };
-
     return (
         <div className="actividades-container">
             {expandedActividadId && (
@@ -287,79 +284,19 @@ const Actividades = () => {
                     </div>
                 ) : (
                     actividadesFiltradas.map((actividad) => (
-                        <div
-                            className={`actividad-card ${expandedActividadId === actividad.id_actividad ? 'expanded' : ''}`}
+                        <ActivityCard
                             key={actividad.id_actividad}
-                        >
-                            <h3>{actividad.titulo}</h3>
-                            <div className="actividad-info-basic">
-                                <p>Instructor: {actividad.instructor || "No especificado"}</p>
-                                <p>
-                                    Horario: {actividad.hora_inicio} a {actividad.hora_fin}
-                                </p>
-                            </div>
-
-                            {expandedActividadId === actividad.id_actividad && (
-                                <div className="actividad-info-expanded">
-                                    <div className="actividad-imagen">
-                                        <img
-                                            src={actividad.foto_url || "https://via.placeholder.com/300x200"}
-                                            alt={actividad.titulo}
-                                        />
-                                    </div>
-                                    <div className="actividad-detalles">
-                                        <p>{actividad.descripcion}</p>
-                                        <p>Día: {actividad.dia || "No especificado"}</p>
-                                        <p><b>Horario:</b> {actividad.hora_inicio} a {actividad.hora_fin}</p>
-                                        <p>Cupo total: {actividad.cupo} | Lugares disponibles: {actividad.lugares}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="card-actions">
-                                {isLoggedIn && (
-                                    <>
-                                        {isAdmin ? (
-                                            <>
-                                                <button
-                                                    className="edit-button"
-                                                    onClick={() => handleEditar(actividad)}
-                                                    title="Editar"
-                                                >
-                                                    <span>✏️</span>
-                                                    Editar
-                                                </button>
-                                                <button
-                                                    className="delete-button"
-                                                    onClick={() => handleEliminar(actividad)}
-                                                    title="Eliminar"
-                                                >
-                                                    <span>🗑️</span>
-                                                    Eliminar
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button
-                                                className="inscripcion-button"
-                                                onClick={() =>
-                                                    estaInscripto(actividad.id_actividad) ?
-                                                        handleUnenrolling(actividad.id_actividad) :
-                                                        handleEnroling(actividad.id_actividad)
-                                                }
-                                            >
-                                                {estaInscripto(actividad.id_actividad) ? "Desinscribir ❌" : "Inscribir ✔️"}
-                                            </button>
-                                        )}
-                                    </>
-                                )}
-                                <button
-                                    className="ver-mas-button"
-                                    onClick={() => toggleExpand(actividad.id_actividad)}
-                                >
-                                    {expandedActividadId === actividad.id_actividad ? "Ver menos 🔼" : "Ver más 🔽"}
-                                </button>
-                            </div>
-                        </div>
+                            actividad={actividad}
+                            isExpanded={expandedActividadId === actividad.id_actividad}
+                            isLoggedIn={isLoggedIn}
+                            isAdmin={isAdmin}
+                            estaInscripto={estaInscripto}
+                            onToggleExpand={setExpandedActividadId}
+                            onEditar={handleEditar}
+                            onEliminar={handleEliminar}
+                            onEnroling={handleEnroling}
+                            onUnenrolling={handleUnenrolling}
+                        />
                     ))
                 )}
             </div>

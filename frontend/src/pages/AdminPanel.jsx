@@ -24,10 +24,10 @@ const AdminPanel = () => {
     const fetchActividades = async () => {
         try {
             console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-            const response = await fetch(`${ACTIVITIES_URL}/actividades`);
+            const response = await fetch(`${ACTIVITIES_URL}/activities`);
             if (response.ok) {
                 const data = await response.json();
-                setActividades(data);
+                setActividades(data.activities);
             }
         } catch (error) {
             console.error("Error al cargar actividades:", error);
@@ -58,7 +58,7 @@ const AdminPanel = () => {
         if (window.confirm('¿Estás seguro de que deseas eliminar esta actividad? Se eliminarán también todas las inscripciones asociadas.')) {
             try {
                 console.log(`ACTIVITIES_URL = ${ACTIVITIES_URL}`);
-                const response = await fetch(`${ACTIVITIES_URL}/actividades/${actividad.id_actividad}`, {
+                const response = await fetch(`${ACTIVITIES_URL}/activities/${actividad.id_actividad}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
@@ -100,7 +100,6 @@ const AdminPanel = () => {
                             <th>Título</th>
                             <th>Descripción</th>
                             <th>Instructor</th>
-                            <th>Categoría</th>
                             <th>Día</th>
                             <th>Horario</th>
                             <th>Cupo</th>

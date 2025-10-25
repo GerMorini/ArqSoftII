@@ -125,6 +125,9 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 	if activity.HoraFin != "" {
 		set["hora_fin"] = activity.HoraFin
 	}
+	if activity.FotoUrl != "" {
+		set["foto_url"] = activity.FotoUrl
+	}
 	if len(set) == 0 {
 		return dto.ActivityAdministration{}, errors.New("no fields to update")
 	}

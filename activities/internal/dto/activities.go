@@ -11,6 +11,7 @@ type Activity struct {
 	HoraInicio   string `json:"hora_inicio"`
 	HoraFin      string `json:"hora_fin"`
 	CapacidadMax string `json:"cupo"`
+	FotoUrl      string `json:"foto_url"`
 }
 
 type Activities []Activity

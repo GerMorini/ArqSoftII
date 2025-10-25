@@ -22,6 +22,7 @@ type ActivityDAO struct {
 	CapacidadMax      int                `bson:"capacidad_max"`
 	Activa            bool               `bson:"activa"`
 	FechaCreacion     time.Time          `bson:"fecha_creacion"`
+	FotoUrl           string             `bson:"foto_url"`
 }
 
 // ToDomain convierte ActivityDAO a Activity (DTO/Domain)
@@ -34,6 +35,7 @@ func (dao ActivityDAO) ToDomain() dto.Activity {
 		DiaSemana:    dao.DiaSemana,
 		HoraInicio:   dao.HoraInicio,
 		HoraFin:      dao.HoraFin,
+		FotoUrl:      dao.FotoUrl,
 		CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
 	}
 }
@@ -58,6 +60,7 @@ func FromDomainDAO(a dto.ActivityAdministration) ActivityDAO {
 		HoraFin:           a.HoraFin,
 		UsuariosInscritos: userIDs,
 		CapacidadMax:      capMax,
+		FotoUrl:           a.FotoUrl,
 		Activa:            true, // Por defecto al crear es activa
 		FechaCreacion:     time.Now().UTC(),
 	}
@@ -78,6 +81,7 @@ func ToDomainAdministration(dao ActivityDAO) dto.ActivityAdministration {
 			DiaSemana:    dao.DiaSemana,
 			HoraInicio:   dao.HoraInicio,
 			HoraFin:      dao.HoraFin,
+			FotoUrl:      dao.FotoUrl,
 			CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
 		},
 		UsersInscribed: userIDs,
