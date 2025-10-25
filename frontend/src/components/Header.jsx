@@ -12,12 +12,12 @@ const Header = ( ) => {
         localStorage.removeItem("access_token");
         navigate("/");
     }
-    
+
     return (
         <header>
-            <div className="header-container"> 
+            <div className="header-container">
                 <nav className="header-content">
-                    <h1 className="header-title">GymPro</h1> 
+                    <h1 className="header-title" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>💪 GymPro</h1> 
                     <div className="header-links"> 
                         <a href="/">Inicio 🏠</a>
                         <a href="/actividades">Actividades 🏋🏽‍♂️</a>

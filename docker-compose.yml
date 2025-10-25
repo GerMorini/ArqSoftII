@@ -1,43 +1,87 @@
 services:
+  # ==================== Usuarios API ====================
   users-api:
     container_name: users-api
-    build: ./users
+    build:
+      context: ./users
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DB_HOST=mysql-users-api
+      - DB_PORT=3306
+      - DB_SCHEMA=${DB_SCHEMA:-users}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASS=${DB_PASS:-root}
+      - JWT_SECRET=${JWT_SECRET:-79e0ac392376829ac249da1d85d35300fec2de6b8cabd2106023e0b29db49ef4372bc1b9e9611a4ad55e61a483ea18f8fa5649b9ec25fa1e954893eb40b5beff}
     env_file:
-      - ./.env
+      - .env
     depends_on:
-      - mysql-users-api
+      mysql-users-api:
+        condition: service_healthy
     networks:
       - microservices
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ==================== MySQL para Usuarios ====================
   mysql-users-api:
     image: mysql:9.3
     container_name: mysql-users-api
-    env_file:
-      - ./.env
     ports:
       - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_PASS:-root}
       - MYSQL_DATABASE=${DB_SCHEMA:-users}
+      - MYSQL_ROOT_HOST=%
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./users/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - microservices
-  
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== Actividades API ====================
   activities-api:
     container_name: activities-api
-    build: ./activities
+    build:
+      context: ./activities
+      dockerfile: Dockerfile
     ports:
       - "8081:8080"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - MONGODB_URL=mongodb://mongo-activities-api:27017
+      - MONGO_DB=${MONGO_DB:-activities}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret}
     env_file:
-      - ./.env
+      - .env
     depends_on:
-      - mongo-activities-api
+      mongo-activities-api:
+        condition: service_healthy
     networks:
       - microservices
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ==================== MongoDB para Actividades ====================
   mongo-activities-api:
     image: mongo:8.0
     container_name: mongo-activities-api
@@ -50,31 +94,57 @@ services:
       - mongo_data:/data/db
     networks:
       - microservices
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ==================== Frontend ====================
   frontend:
     container_name: frontend
-    build: 
+    build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
-        - VITE_USERS_URL=${VITE_USERS_URL}
-        - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL}
-        - VITE_SEARCH_URL=${VITE_SEARCH_URL}
+        - VITE_USERS_URL=${VITE_USERS_URL:-http://users-api:8080}
+        - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL:-http://activities-api:8080}
     ports:
       - "80:80"
     environment:
-      - VITE_USERS_URL=${VITE_USERS_URL}
-      - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL}
-      - VITE_SEARCH_URL=${VITE_SEARCH_URL}
+      - VITE_USERS_URL=${VITE_USERS_URL:-http://localhost:8080}
+      - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL:-http://localhost:8081}
     depends_on:
       - users-api
       - activities-api
     networks:
       - microservices
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+# ==================== Networks ====================
 networks:
   microservices:
     driver: bridge
 
+# ==================== Volumes ====================
 volumes:
   mysql_data:
+    driver: local
   mongo_data:
+    driver: local

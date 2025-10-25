@@ -208,7 +208,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             name="hora_inicio"
                             value={formData.hora_inicio}
                             onChange={handleChange}
-                            step="900"
+                            step="1800"
                             required
                         />
                         {validationErrors.hora_inicio && <span className="error-text">{validationErrors.hora_inicio}</span>}
@@ -222,7 +222,7 @@ const EditarActividadModal = ({ actividad, onClose, onSave }) => {
                             name="hora_fin"
                             value={formData.hora_fin}
                             onChange={handleChange}
-                            step="900"
+                            step="1800"
                             required
                         />
                         {validationErrors.hora_fin && <span className="error-text">{validationErrors.hora_fin}</span>}
