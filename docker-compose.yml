@@ -34,12 +34,13 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - mongo_activities_api
+      - mongo-activities-api
     networks:
       - microservices
 
-  mongo_activities_api:
+  mongo-activities-api:
     image: mongo:8.0
+    container_name: mongo-activities-api
     ports:
       - "27017:27017"
     environment:
@@ -50,14 +51,25 @@ services:
     networks:
       - microservices
 
-  # frontend:
-  #   build: ./frontend
-  #   ports:
-  #     - "5173:5173"
-  #   depends_on:
-  #     - users-api
-  #   networks:
-  #     - microservices
+  frontend:
+    container_name: frontend
+    build: 
+      context: ./frontend
+      args:
+        - VITE_USERS_URL=${VITE_USERS_URL}
+        - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL}
+        - VITE_SEARCH_URL=${VITE_SEARCH_URL}
+    ports:
+      - "80:80"
+    environment:
+      - VITE_USERS_URL=${VITE_USERS_URL}
+      - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL}
+      - VITE_SEARCH_URL=${VITE_SEARCH_URL}
+    depends_on:
+      - users-api
+      - activities-api
+    networks:
+      - microservices
 
 networks:
   microservices:
