@@ -9,6 +9,25 @@ import logger from '../utils/logger';
 const ACTIVITIES_URL = config.ACTIVITIES_URL;
 
 /**
+ * Extrae el mensaje de error desde la respuesta del backend
+ * @param {Response} response - La respuesta HTTP
+ * @param {string} defaultMessage - Mensaje por defecto si no se puede extraer
+ * @returns {Promise<string>} - El mensaje de error
+ */
+async function extractErrorMessage(response, defaultMessage) {
+  try {
+    const data = await response.json();
+    // Intenta obtener el error del backend en diferentes formatos
+    if (data.error) return data.error;
+    if (data.message) return data.message;
+    if (data.msg) return data.msg;
+    return defaultMessage;
+  } catch {
+    return defaultMessage;
+  }
+}
+
+/**
  * Servicio de actividades
  */
 export const actividadService = {
@@ -79,8 +98,9 @@ export const actividadService = {
       });
 
       if (!response.ok) {
-        logger.logApiError('/activities', response.status, 'Failed to create actividad');
-        throw new Error('Error al crear la actividad');
+        const errorMessage = await extractErrorMessage(response, 'Error al crear la actividad');
+        logger.logApiError('/activities', response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -109,8 +129,9 @@ export const actividadService = {
       });
 
       if (!response.ok) {
-        logger.logApiError(`/activities/${actividadId}`, response.status, 'Failed to update actividad');
-        throw new Error('Error al actualizar la actividad');
+        const errorMessage = await extractErrorMessage(response, 'Error al actualizar la actividad');
+        logger.logApiError(`/activities/${actividadId}`, response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -137,8 +158,9 @@ export const actividadService = {
       });
 
       if (!response.ok) {
-        logger.logApiError(`/activities/${actividadId}`, response.status, 'Failed to delete actividad');
-        throw new Error('Error al eliminar la actividad');
+        const errorMessage = await extractErrorMessage(response, 'Error al eliminar la actividad');
+        logger.logApiError(`/activities/${actividadId}`, response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       logger.info('Actividad eliminada exitosamente', { actividadId });
@@ -164,8 +186,9 @@ export const actividadService = {
       });
 
       if (!response.ok) {
-        logger.logApiError(`/activities/${actividadId}/inscribir`, response.status, 'Failed to enroll in actividad');
-        throw new Error('Error al inscribirse en la actividad');
+        const errorMessage = await extractErrorMessage(response, 'Error al inscribirse en la actividad');
+        logger.logApiError(`/activities/${actividadId}/inscribir`, response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -192,8 +215,9 @@ export const actividadService = {
       });
 
       if (!response.ok) {
-        logger.logApiError(`/activities/${actividadId}/desinscribir`, response.status, 'Failed to unenroll from actividad');
-        throw new Error('Error al desincribirse de la actividad');
+        const errorMessage = await extractErrorMessage(response, 'Error al desincribirse de la actividad');
+        logger.logApiError(`/activities/${actividadId}/desinscribir`, response.status, errorMessage);
+        throw new Error(errorMessage);
       }
 
       logger.info('Usuario desincrito exitosamente', { usuarioId, actividadId });

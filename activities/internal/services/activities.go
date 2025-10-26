@@ -72,13 +72,24 @@ func (s *ActivitiesServiceImpl) GetByID(ctx context.Context, id string) (dto.Act
 
 // Update actualiza una actividad existente
 func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
-	_, err := s.repository.GetByID(ctx, id)
+	currentActivity, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("activity does not exist: %w", err)
 	}
 
 	if err := s.validateActivity(activity); err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("validation error: %w", err)
+	}
+
+	// Validar que la nueva capacidad no sea menor a la cantidad de inscritos
+	if activity.CapacidadMax != "" {
+		var newCapacity int
+		if _, err := fmt.Sscanf(activity.CapacidadMax, "%d", &newCapacity); err == nil {
+			inscriptosCount := len(currentActivity.UsersInscribed)
+			if newCapacity < inscriptosCount {
+				return dto.ActivityAdministration{}, fmt.Errorf("capacidadMax cannot be less than the number of inscribed users (%d)", inscriptosCount)
+			}
+		}
 	}
 
 	updated, err := s.repository.Update(ctx, id, activity)

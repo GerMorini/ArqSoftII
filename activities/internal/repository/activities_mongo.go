@@ -128,6 +128,12 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 	if activity.FotoUrl != "" {
 		set["foto_url"] = activity.FotoUrl
 	}
+	if activity.CapacidadMax != "" {
+		capMax, err := strconv.ParseInt(activity.CapacidadMax, 10, 64)
+		if err == nil {
+			set["capacidad_max"] = capMax
+		}
+	}
 	if len(set) == 0 {
 		return dto.ActivityAdministration{}, errors.New("no fields to update")
 	}

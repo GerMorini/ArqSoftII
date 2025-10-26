@@ -179,7 +179,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                 <label htmlFor="cupo">
                                     Cupo:
                                     {isEditMode && actividad && (
-                                        <span className="inscriptos-info"> ({actividad.cupo - actividad.lugares} inscriptos)</span>
+                                        <span className="inscriptos-info"> ({actividad.cupo - actividad.lugares_disponibles} inscriptos)</span>
                                     )}
                                 </label>
                                 <input
