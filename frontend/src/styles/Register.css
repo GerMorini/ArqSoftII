@@ -45,6 +45,7 @@
     margin-left: 6vw;
     color: #fff;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 .register-form h2 {
@@ -58,6 +59,9 @@
 .input-group {
     margin-bottom: 22px;
     width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    display: block;
 }
 
 .register-form input {
@@ -70,7 +74,10 @@
     color: #fff;
     box-sizing: border-box;
     margin-bottom: 2px;
+    margin-left: 0;
+    margin-right: 0;
     transition: border 0.2s, box-shadow 0.2s;
+    display: block;
 }
 
 .register-form input:focus {
@@ -93,6 +100,7 @@
     transition: background-color 0.3s ease;
     font-weight: 600;
     margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .register-form button:hover {

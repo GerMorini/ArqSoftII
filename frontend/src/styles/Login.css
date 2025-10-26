@@ -7,8 +7,8 @@
     background: linear-gradient(to right, rgba(20, 20, 20, 0.92) 0%, rgba(20, 20, 20, 0.85) 30%, rgba(20, 20, 20, 0.3) 60%, rgba(20, 20, 20, 0.0) 100%),
         url('../assets/login/gimnasio1.jpeg') center center/cover no-repeat;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
     position: relative;
 }
 
@@ -40,11 +40,12 @@
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.25);
     width: 100%;
-    max-width: 400px;
+    max-width: 500px;
     text-align: left;
     margin-left: 6vw;
     color: #fff;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 .login-form h2 {
@@ -58,6 +59,9 @@
 .input-group {
     margin-bottom: 22px;
     width: 100%;
+    box-sizing: border-box;
+    display: block;
+    padding: 0;
 }
 
 .login-form input {
@@ -70,7 +74,10 @@
     color: #fff;
     box-sizing: border-box;
     margin-bottom: 2px;
+    margin-left: 0;
+    margin-right: 0;
     transition: border 0.2s, box-shadow 0.2s;
+    display: block;
 }
 
 .login-form input:focus {
@@ -93,6 +100,7 @@
     transition: background-color 0.3s ease;
     font-weight: 600;
     margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .login-form button:hover {

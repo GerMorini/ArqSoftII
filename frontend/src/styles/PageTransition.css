@@ -1,0 +1,19 @@
+/* Animación de fade-in para transiciones entre páginas */
+@keyframes pageTransitionFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.page-transition {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.page-transition.visible {
+  animation: pageTransitionFadeIn 0.2s ease-in-out forwards;
+}

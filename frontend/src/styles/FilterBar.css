@@ -1,0 +1,360 @@
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Filter Bar Container */
+.filter-bar-container {
+    background-color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    margin: 0 auto 2rem auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    max-width: 1300px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Filter Bar Header */
+.filter-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.filter-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Fieldset y Legend */
+.filter-fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-legend {
+    display: none;
+}
+
+/* Filter Inputs Row - Horizontal */
+.filter-inputs-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Labels */
+.filter-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Inputs */
+.filter-input,
+.filter-select {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    color: #333;
+    height: auto;
+    min-height: 40px;
+    box-sizing: border-box;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+}
+
+.filter-input::placeholder {
+    color: #999;
+}
+
+/* Search Group */
+.search-group {
+    flex: 1;
+}
+
+/* Toggle Group Inline */
+.toggle-group-inline {
+    min-width: auto;
+    flex: 0;
+}
+
+.toggle-label-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.toggle-label-inline input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider-inline {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-slider-inline::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+}
+
+.toggle-label-inline input[type="checkbox"]:checked + .toggle-slider-inline {
+    background-color: #4a9eff;
+}
+
+.toggle-label-inline input[type="checkbox"]:checked + .toggle-slider-inline::after {
+    left: 22px;
+}
+
+.toggle-text-inline {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 12px;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider {
+    background-color: #4a9eff;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-slider::after {
+    left: 26px;
+}
+
+.toggle-label input[type="checkbox"]:disabled + .toggle-slider {
+    background-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
+.toggle-label input[type="checkbox"]:focus + .toggle-slider {
+    outline: 2px solid #4a9eff;
+    outline-offset: 2px;
+}
+
+.toggle-text {
+    font-weight: 500;
+    color: #333;
+}
+
+/* Clear Button */
+.filter-btn-clear {
+    padding: 0.5rem 0.75rem;
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    min-width: auto;
+    flex: 0;
+    height: 40px;
+    order: -1;
+}
+
+.filter-btn-clear:hover {
+    background-color: #ff5252;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.filter-btn-clear:focus {
+    outline: 2px solid #ff6b6b;
+    outline-offset: 2px;
+}
+
+.filter-btn-clear:active {
+    transform: translateY(0);
+}
+
+/* Clear Button Small (deprecated, kept for compatibility) */
+.filter-btn-clear-small {
+    padding: 0.4rem 0.6rem;
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.filter-btn-clear-small:hover {
+    background-color: #ff5252;
+    transform: scale(1.1);
+}
+
+.filter-btn-clear-small:focus {
+    outline: 2px solid #ff6b6b;
+    outline-offset: 2px;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: auto;
+    flex: 0;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+}
+
+.checkbox-group input[type="checkbox"]:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .filter-bar-container {
+        padding: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-inputs-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .filter-group {
+        min-width: 100%;
+        flex: 1;
+    }
+
+    .search-group {
+        flex: 1;
+    }
+
+    .toggle-group-inline {
+        width: 100%;
+        flex: 1;
+    }
+
+    .filter-title {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-bar-container {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-legend {
+        font-size: 0.95rem;
+    }
+
+    .filter-label {
+        font-size: 0.8rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        font-size: 0.9rem;
+        padding: 0.6rem;
+    }
+
+    .filter-btn-clear {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+}

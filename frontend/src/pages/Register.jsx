@@ -3,6 +3,7 @@ import '../styles/Register.css';
 import { useNavigate } from "react-router-dom";
 import { storeUserSession } from "./Login";
 import config from '../config/env';
+import PageTransition from '../components/PageTransition';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -84,96 +85,98 @@ const Register = () => {
     };
 
     return (
-        <div className="register-container">
-            <button onClick={handleBack} className="back-button">
-                ← Inicio
-            </button>
-            <form className="register-form" onSubmit={handleSubmit}>
-                <h2>Registro de Usuario</h2>
-
-                {error && <div className="error-message">{error}</div>}
-
-                <div className="input-group">
-                    <input
-                        type="text"
-                        name="nombre"
-                        placeholder="Nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <div className="input-group">
-                    <input
-                        type="text"
-                        name="apellido"
-                        placeholder="Apellido"
-                        value={formData.apellido}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-                
-                <div className="input-group">
-                    <input
-                        type="text"
-                        name="email"
-                        placeholder="Correo electrónico"
-                        value={formData.email}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <div className="input-group">
-                    <input
-                        type="text"
-                        name="username"
-                        placeholder="Nombre de usuario"
-                        value={formData.username}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <div className="input-group">
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Contraseña"
-                        value={formData.password}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <div className="input-group">
-                    <input
-                        type="password"
-                        name="confirmPassword"
-                        placeholder="Confirmar Contraseña"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <button type="submit" disabled={isLoading}>
-                    {isLoading ? "Registrando..." : "Registrarse"}
+        <PageTransition>
+            <div className="register-container">
+                <button onClick={handleBack} className="back-button">
+                    ← Inicio
                 </button>
+                <form className="register-form" onSubmit={handleSubmit}>
+                    <h2>Registro de Usuario</h2>
 
-                <div className="login-link">
-                    ¿Ya tienes una cuenta? <a href="/login">Iniciar Sesión</a>
-                </div>
-            </form>
-        </div>
+                    {error && <div className="error-message">{error}</div>}
+
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            name="nombre"
+                            placeholder="Nombre"
+                            value={formData.nombre}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            name="apellido"
+                            placeholder="Apellido"
+                            value={formData.apellido}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            name="email"
+                            placeholder="Correo electrónico"
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            name="username"
+                            placeholder="Nombre de usuario"
+                            value={formData.username}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Contraseña"
+                            value={formData.password}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="password"
+                            name="confirmPassword"
+                            placeholder="Confirmar Contraseña"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <button type="submit" disabled={isLoading}>
+                        {isLoading ? "Registrando..." : "Registrarse"}
+                    </button>
+
+                    <div className="login-link">
+                        ¿Ya tienes una cuenta? <a href="/login">Iniciar Sesión</a>
+                    </div>
+                </form>
+            </div>
+        </PageTransition>
     );
 };
 

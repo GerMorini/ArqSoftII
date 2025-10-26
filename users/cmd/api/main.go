@@ -28,9 +28,12 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	router.GET("/users", userController.GetAll)
 	router.GET("/users/:id", userController.GetByID)
 	router.POST("/register", userController.Create)
 	router.POST("/login", userController.Login)
+	router.PUT("/users/:id", userController.Update)
+	router.DELETE("/users/:id", userController.Delete)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

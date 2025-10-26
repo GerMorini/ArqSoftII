@@ -119,3 +119,67 @@ func (c *UsersController) GetByID(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, userData)
 }
+
+func (c *UsersController) GetAll(ctx *gin.Context) {
+	usuarios, err := c.service.GetAll()
+	if err != nil {
+		log.Errorf("error al obtener todos los usuarios: %v", err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al obtener usuarios"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, usuarios)
+}
+
+func (c *UsersController) Update(ctx *gin.Context) {
+	id_str := ctx.Param("id")
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		log.Warnf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		return
+	}
+
+	var updateDTO dto.UserUpdateDTO
+	if err := ctx.BindJSON(&updateDTO); err != nil {
+		log.Warnf("error al parsear body al actualizar usuario: %v", err)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
+		return
+	}
+
+	userData, err := c.service.Update(id, updateDTO)
+	if err != nil {
+		log.Warnf("error al actualizar usuario con ID %d: %v", id, err)
+		if err == gorm.ErrRecordNotFound {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+			return
+		}
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al actualizar usuario"})
+		return
+	}
+
+	log.Infof("usuario con ID %d actualizado exitosamente", id)
+	ctx.JSON(http.StatusOK, userData)
+}
+
+func (c *UsersController) Delete(ctx *gin.Context) {
+	id_str := ctx.Param("id")
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		log.Warnf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		return
+	}
+
+	err = c.service.Delete(id)
+	if err != nil {
+		log.Warnf("error al eliminar usuario con ID %d: %v", id, err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al eliminar usuario"})
+		return
+	}
+
+	log.Infof("usuario con ID %d eliminado exitosamente", id)
+	ctx.JSON(http.StatusOK, gin.H{"message": "usuario eliminado exitosamente"})
+}

@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import logger from '../utils/logger';
 
 const ActivityCard = ({
     actividad,
@@ -12,21 +14,12 @@ const ActivityCard = ({
     onEnroling,
     onUnenrolling
 }) => {
-    useEffect(() => {
-        if (!isExpanded) return;
-
-        const handleEscape = (event) => {
-            if (event.key === 'Escape') {
-                onToggleExpand(null);
-            }
-        };
-
-        window.addEventListener('keydown', handleEscape);
-
-        return () => {
-            window.removeEventListener('keydown', handleEscape);
-        };
-    }, [isExpanded, onToggleExpand]);
+    useEscapeKey(() => {
+        if (isExpanded) {
+            logger.debug('ActivityCard - Escape key pressed, closing');
+            onToggleExpand(null);
+        }
+    });
 
     return (
         <div
@@ -52,7 +45,7 @@ const ActivityCard = ({
                         <p>{actividad.descripcion}</p>
                         <p>Día: {actividad.dia || "No especificado"}</p>
                         <p><b>Horario:</b> {actividad.hora_inicio} a {actividad.hora_fin}</p>
-                        <p>Cupo total: {actividad.cupo} | Lugares disponibles: {actividad.lugares}</p>
+                        <p>Cupo total: {actividad.cupo} | Lugares disponibles: {actividad.lugares_disponibles}</p>
                     </div>
                 </div>
             )}
@@ -84,8 +77,8 @@ const ActivityCard = ({
                                 className="inscripcion-button"
                                 onClick={() =>
                                     estaInscripto(actividad.id_actividad) ?
-                                        onUnenrolling(actividad.id_actividad) :
-                                        onEnroling(actividad.id_actividad)
+                                        onUnenrolling(actividad) :
+                                        onEnroling(actividad)
                                 }
                             >
                                 {estaInscripto(actividad.id_actividad) ? "Desinscribir ❌" : "Inscribir ✔️"}

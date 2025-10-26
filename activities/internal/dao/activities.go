@@ -27,16 +27,18 @@ type ActivityDAO struct {
 
 // ToDomain convierte ActivityDAO a Activity (DTO/Domain)
 func (dao ActivityDAO) ToDomain() dto.Activity {
+	lugaresDisponibles := dao.CapacidadMax - len(dao.UsuariosInscritos)
 	return dto.Activity{
-		ID:           dao.ID.Hex(),
-		Nombre:       dao.Nombre,
-		Descripcion:  dao.Descripcion,
-		Profesor:     dao.Profesor,
-		DiaSemana:    dao.DiaSemana,
-		HoraInicio:   dao.HoraInicio,
-		HoraFin:      dao.HoraFin,
-		FotoUrl:      dao.FotoUrl,
-		CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
+		ID:                 dao.ID.Hex(),
+		Nombre:             dao.Nombre,
+		Descripcion:        dao.Descripcion,
+		Profesor:           dao.Profesor,
+		DiaSemana:          dao.DiaSemana,
+		HoraInicio:         dao.HoraInicio,
+		HoraFin:            dao.HoraFin,
+		FotoUrl:            dao.FotoUrl,
+		CapacidadMax:       fmt.Sprintf("%d", dao.CapacidadMax),
+		LugaresDisponibles: lugaresDisponibles,
 	}
 }
 
@@ -72,17 +74,19 @@ func ToDomainAdministration(dao ActivityDAO) dto.ActivityAdministration {
 	for i, id := range dao.UsuariosInscritos {
 		userIDs[i] = fmt.Sprintf("%d", id)
 	}
+	lugaresDisponibles := dao.CapacidadMax - len(dao.UsuariosInscritos)
 	return dto.ActivityAdministration{
 		Activity: dto.Activity{
-			ID:           dao.ID.Hex(),
-			Nombre:       dao.Nombre,
-			Descripcion:  dao.Descripcion,
-			Profesor:     dao.Profesor,
-			DiaSemana:    dao.DiaSemana,
-			HoraInicio:   dao.HoraInicio,
-			HoraFin:      dao.HoraFin,
-			FotoUrl:      dao.FotoUrl,
-			CapacidadMax: fmt.Sprintf("%d", dao.CapacidadMax),
+			ID:                 dao.ID.Hex(),
+			Nombre:             dao.Nombre,
+			Descripcion:        dao.Descripcion,
+			Profesor:           dao.Profesor,
+			DiaSemana:          dao.DiaSemana,
+			HoraInicio:         dao.HoraInicio,
+			HoraFin:            dao.HoraFin,
+			FotoUrl:            dao.FotoUrl,
+			CapacidadMax:       fmt.Sprintf("%d", dao.CapacidadMax),
+			LugaresDisponibles: lugaresDisponibles,
 		},
 		UsersInscribed: userIDs,
 		FechaCreacion:  dao.FechaCreacion,

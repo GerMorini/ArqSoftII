@@ -2,6 +2,7 @@ import { useState } from "react";
 import '../styles/Login.css';
 import { useNavigate } from "react-router-dom";
 import config from '../config/env';
+import PageTransition from '../components/PageTransition';
 
 const getTokenPayload = (token) => {
     const parts = token.split('.');
@@ -10,7 +11,7 @@ const getTokenPayload = (token) => {
     return JSON.parse(decodedPaylod);
 }
 
-const storeUserSession = (accessToken) => {
+const storeUserSession = (accessToken, username) => {
     const payload = getTokenPayload(accessToken)
     const admin = payload.is_admin;
     const idUsuario = payload.id_usuario
@@ -19,6 +20,7 @@ const storeUserSession = (accessToken) => {
     localStorage.setItem("idUsuario", parseInt(idUsuario));
     localStorage.setItem("isAdmin", admin.toString());
     localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("username", username);
 };
 
 const Login = () => {
@@ -49,13 +51,12 @@ const Login = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                storeUserSession(data.access_token)
-                
+                storeUserSession(data.access_token, username)
+
                 navigate("/");
             } else {
                 const errorData = await response.json();
                 setError(errorData.error || "Error de autenticación");
-                alert("Error al loguearse");
             }
 
         } catch (error) {
@@ -71,46 +72,48 @@ const Login = () => {
     };
 
     return (
-        <div className="login-container">
-            <button onClick={handleBack} className="back-button">
-                ← Inicio
-            </button>
-            <form className="login-form" onSubmit={handlerLogin}>
-                <h2>Iniciar Sesión</h2>
-
-                {error && <div className="error-message">{error}</div>}
-
-                <div className="input-group">
-                    <input
-                        type="text"
-                        placeholder="Usuario"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <div className="input-group">
-                    <input
-                        type="password"
-                        placeholder="Contraseña"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
-                        required
-                    />
-                </div>
-
-                <button type="submit" disabled={isLoading}>
-                    {isLoading ? "Ingresando..." : "Ingresar"}
+        <PageTransition>
+            <div className="login-container">
+                <button onClick={handleBack} className="back-button">
+                    ← Inicio
                 </button>
+                <form className="login-form" onSubmit={handlerLogin}>
+                    <h2>Iniciar Sesión</h2>
 
-                <div className="register-link">
-                    ¿No tienes una cuenta? <a href="/register">Regístrate ahora</a>
-                </div>
-            </form>
-        </div>
+                    {error && <div className="error-message">{error}</div>}
+
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            placeholder="Usuario"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <div className="input-group">
+                        <input
+                            type="password"
+                            placeholder="Contraseña"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={isLoading}
+                            required
+                        />
+                    </div>
+
+                    <button type="submit" disabled={isLoading}>
+                        {isLoading ? "Ingresando..." : "Ingresar"}
+                    </button>
+
+                    <div className="register-link">
+                        ¿No tienes una cuenta? <a href="/register">Regístrate ahora</a>
+                    </div>
+                </form>
+            </div>
+        </PageTransition>
     );
 };
 

@@ -11,3 +11,11 @@ type UserDTO struct {
 }
 
 type UsersDTO []UserDTO
+
+type UserUpdateDTO struct {
+	Nombre   string `json:"nombre"`
+	Apellido string `json:"apellido"`
+	Email    string `json:"email"`
+	Password string `json:"password,omitempty"`
+	IsAdmin  bool   `json:"is_admin"`
+}

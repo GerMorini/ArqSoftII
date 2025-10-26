@@ -18,6 +18,9 @@ type UsersService interface {
 	Login(loginDTO dto.UserLoginDTO) (string, error)
 	Create(datos dto.UserMinDTO) (dto.UserMinDTO, error)
 	GetByID(id int) (dto.UserDTO, error)
+	GetAll() ([]dto.UserDTO, error)
+	Update(id int, updateDTO dto.UserUpdateDTO) (dto.UserDTO, error)
+	Delete(id int) error
 
 	GenerateToken(userdata dao.User) (string, error)
 	GetClaimsFromToken(tokenString string) (jwt.MapClaims, error)
@@ -168,4 +171,60 @@ func validateUser(user dto.UserMinDTO) error {
 func calculateSHA256(input string) string {
 	hash := sha256.Sum256([]byte(input))
 	return hex.EncodeToString(hash[:])
+}
+
+func (s *UsersServiceImpl) GetAll() ([]dto.UserDTO, error) {
+	usuarios, err := s.repository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []dto.UserDTO
+	for _, u := range usuarios {
+		result = append(result, dto.UserDTO{
+			Id:       u.Id,
+			Nombre:   u.Nombre,
+			Apellido: u.Apellido,
+			Username: u.Username,
+			Email:    u.Email,
+			IsAdmin:  u.IsAdmin,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *UsersServiceImpl) Update(id int, updateDTO dto.UserUpdateDTO) (dto.UserDTO, error) {
+	usuarioActual, err := s.repository.GetUserByID(id)
+	if err != nil {
+		return dto.UserDTO{}, err
+	}
+
+	usuarioActual.Nombre = updateDTO.Nombre
+	usuarioActual.Apellido = updateDTO.Apellido
+	usuarioActual.Email = updateDTO.Email
+	usuarioActual.IsAdmin = updateDTO.IsAdmin
+
+	// Si se proporciona una nueva contraseña, hashearla y actualizar
+	if strings.TrimSpace(updateDTO.Password) != "" {
+		usuarioActual.Password = calculateSHA256(updateDTO.Password)
+	}
+
+	usuarioActualizado, err := s.repository.Update(id, usuarioActual)
+	if err != nil {
+		return dto.UserDTO{}, err
+	}
+
+	return dto.UserDTO{
+		Id:       usuarioActualizado.Id,
+		Nombre:   usuarioActualizado.Nombre,
+		Apellido: usuarioActualizado.Apellido,
+		Username: usuarioActualizado.Username,
+		Email:    usuarioActualizado.Email,
+		IsAdmin:  usuarioActualizado.IsAdmin,
+	}, nil
+}
+
+func (s *UsersServiceImpl) Delete(id int) error {
+	return s.repository.Delete(id)
 }

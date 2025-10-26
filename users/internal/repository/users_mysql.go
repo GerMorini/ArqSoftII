@@ -18,6 +18,9 @@ type UsersRepository interface {
 	GetUserByID(id int) (dao.User, error)
 	GetUserByUsername(username string) (dao.User, error)
 	GetUserByEmail(email string) (dao.User, error)
+	GetAll() ([]dao.User, error)
+	Update(id int, user dao.User) (dao.User, error)
+	Delete(id int) error
 }
 
 type MySQLUsersRepository struct {
@@ -96,4 +99,35 @@ func (r *MySQLUsersRepository) GetUserByEmail(email string) (dao.User, error) {
 	}
 
 	return usuario, nil
+}
+
+func (r *MySQLUsersRepository) GetAll() ([]dao.User, error) {
+	var usuarios []dao.User
+
+	err := r.db.Find(&usuarios).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return usuarios, nil
+}
+
+func (r *MySQLUsersRepository) Update(id int, user dao.User) (dao.User, error) {
+	// Usar Save para asegurar que todos los campos se actualicen, incluyendo booleanos
+	user.Id = id
+	err := r.db.Save(&user).Error
+	if err != nil {
+		return dao.User{}, err
+	}
+
+	return user, nil
+}
+
+func (r *MySQLUsersRepository) Delete(id int) error {
+	err := r.db.Where("id_usuario = ?", id).Delete(&dao.User{}).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
