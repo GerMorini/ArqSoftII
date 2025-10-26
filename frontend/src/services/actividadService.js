@@ -17,11 +17,8 @@ const ACTIVITIES_URL = config.ACTIVITIES_URL;
 async function extractErrorMessage(response, defaultMessage) {
   try {
     const data = await response.json();
-    // Intenta obtener el error del backend en diferentes formatos
-    if (data.error) return data.error;
-    if (data.message) return data.message;
-    if (data.msg) return data.msg;
-    return defaultMessage;
+
+    return data.error + ": " + data.details;
   } catch {
     return defaultMessage;
   }

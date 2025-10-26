@@ -45,7 +45,7 @@ const ActivityCard = ({
                         <p>{actividad.descripcion}</p>
                         <p>Día: {actividad.dia || "No especificado"}</p>
                         <p><b>Horario:</b> {actividad.hora_inicio} a {actividad.hora_fin}</p>
-                        <p>Cupo total: {actividad.cupo} | Lugares disponibles: {actividad.lugares_disponibles}</p>
+                        <p>Lugares disponibles: {actividad.lugares_disponibles}</p>
                     </div>
                 </div>
             )}

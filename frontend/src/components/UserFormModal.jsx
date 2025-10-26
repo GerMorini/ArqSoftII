@@ -4,6 +4,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { validateUsuarioForm } from '../utils/usuarioValidation';
 import { usuarioService } from '../services/usuarioService';
 import logger from '../utils/logger';
+import config from '../config/env'
 
 const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
     const [submitError, setSubmitError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const USERS_URL = config.USERS_URL
 
     useEscapeKey(onClose);
 
@@ -86,7 +88,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
 
             if (mode === 'create') {
                 // Para crear usuarios, usamos el endpoint de registro
-                const response = await fetch('http://localhost:8083/register', {
+                const response = await fetch(`${USERS_URL}/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -96,7 +98,8 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                         apellido: formData.apellido.trim(),
                         username: formData.username.trim(),
                         email: formData.email.trim(),
-                        password: formData.password
+                        password: formData.password,
+                        is_admin: formData.is_admin
                     })
                 });
 
@@ -212,19 +215,6 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 required={!isEditMode}
                             />
                             {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
-                        </div>
-
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                                type="checkbox"
-                                id="is_admin"
-                                name="is_admin"
-                                checked={formData.is_admin}
-                                onChange={handleChange}
-                            />
-                            <label htmlFor="is_admin" style={{ marginBottom: 0, cursor: 'pointer' }}>
-                                Es administrador
-                            </label>
                         </div>
                     </div>
 
