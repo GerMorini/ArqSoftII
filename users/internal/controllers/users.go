@@ -117,6 +117,7 @@ func (c *UsersController) GetByID(ctx *gin.Context) {
 		return
 	}
 
+	log.Infof("usuario obtenido exitosamente: %v", userData)
 	ctx.JSON(http.StatusOK, userData)
 }
 
@@ -159,7 +160,7 @@ func (c *UsersController) Update(ctx *gin.Context) {
 		return
 	}
 
-	log.Infof("usuario con ID %d actualizado exitosamente", id)
+	log.Infof("usuario actualizado exitosamente: %v", userData)
 	ctx.JSON(http.StatusOK, userData)
 }
 

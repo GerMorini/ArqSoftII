@@ -38,10 +38,6 @@ const storeUserSession = (accessToken, username) => {
  * @returns {object} { valid: boolean, error?: string }
  */
 const validateEmail = (email) => {
-  if (!email || email.trim() === '') {
-    return { valid: false, error: 'El email es requerido' };
-  }
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return { valid: false, error: 'El formato del email no es válido' };
@@ -56,10 +52,6 @@ const validateEmail = (email) => {
  * @returns {object} { valid: boolean, error?: string }
  */
 const validatePassword = (password) => {
-  if (!password || password === '') {
-    return { valid: false, error: 'La contraseña es requerida' };
-  }
-
   if (password.length < 6) {
     return { valid: false, error: 'La contraseña debe tener al menos 6 caracteres' };
   }
@@ -96,38 +88,65 @@ const validateUsuarioForm = (formData, isCreateMode = false) => {
   // Email
   if (!formData.email || formData.email.trim() === '') {
     errors.email = 'El email es requerido';
-  } else if (!isValidEmail(formData.email)) {
-    errors.email = 'El email no es válido';
-  }
-
-  // Validaciones solo para modo crear
-  if (isCreateMode) {
-    // Username
-    if (!formData.username || formData.username.trim() === '') {
-      errors.username = 'El nombre de usuario es requerido';
-    } else if (formData.username.trim().length < 3) {
-      errors.username = 'El nombre de usuario debe tener al menos 3 caracteres';
+  } else {
+    let err = validateEmail(formData.email)
+    if (!err.valid) {
+      errors.email = err.error;
     }
+  }
+  
 
-    // Password
+  // Username
+  if (!formData.username || formData.username.trim() === '') {
+    errors.username = 'El nombre de usuario es requerido';
+  } else if (formData.username.trim().length < 3) {
+    errors.username = 'El nombre de usuario debe tener al menos 3 caracteres';
+  }
+  
+  // Password
+  if (isCreateMode) {
+    // Modo crear: contraseña obligatoria
     if (!formData.password || formData.password === '') {
       errors.password = 'La contraseña es requerida';
-    } else if (formData.password.length < 6) {
-      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else {
+      // Validar fortaleza de la contraseña
+      let err = validatePassword(formData.password);
+      if (!err.valid) {
+        errors.password = err.error;
+      }
+    }
+
+    // Validar confirmación de contraseña
+    if (!formData.confirm_password || formData.confirm_password === '') {
+      errors.confirm_password = 'Debe confirmar la contraseña';
+    } else if (formData.password !== formData.confirm_password) {
+      errors.confirm_password = 'Las contraseñas ingresadas difieren';
     }
   } else {
-    // En modo edición, validar contraseña solo si se ingresa una
-    if (formData.password && formData.password.trim() !== '' && formData.password.length < 6) {
-      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    // Modo editar: solo validar si se ingresa algo
+    if ((formData.password && formData.password !== '') || (formData.confirm_password && formData.confirm_password !== '')) {
+      // Si se ingresa contraseña, validar su fortaleza
+      if (formData.password && formData.password !== '') {
+        let err = validatePassword(formData.password);
+        if (!err.valid) {
+          errors.password = err.error;
+        }
+      } else {
+        errors.password = 'Si desea cambiar la contraseña, debe ingresarla';
+      }
+
+      // Si se ingresa confirmación, verificar que coincidan
+      if (formData.confirm_password && formData.confirm_password !== '') {
+        if (formData.password !== formData.confirm_password) {
+          errors.confirm_password = 'Las contraseñas ingresadas difieren';
+        }
+      } else {
+        errors.confirm_password = 'Debe confirmar la nueva contraseña';
+      }
     }
   }
 
   return errors;
-};
-
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
 };
 
 /**

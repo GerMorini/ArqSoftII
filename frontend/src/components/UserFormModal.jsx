@@ -11,6 +11,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
         username: '',
         email: '',
         password: '',
+        confirm_password: '',
         is_admin: false
     });
     const [submitError, setSubmitError] = useState('');
@@ -90,12 +91,9 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                     nombre: formData.nombre.trim(),
                     apellido: formData.apellido.trim(),
                     email: formData.email.trim(),
-                    is_admin: formData.is_admin
+                    is_admin: formData.is_admin,
+                    password: formData.password
                 };
-
-                if (formData.password.trim()) {
-                    updateData.password = formData.password;
-                }
 
                 await usuarioService.updateUsuario(usuario.id_usuario, updateData);
             }
@@ -185,7 +183,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                         <div className="form-group">
                             <label htmlFor="password">Contraseña:</label>
                             <input
-                                type="password"
+                                type="text"
                                 id="password"
                                 name="password"
                                 value={formData.password}
@@ -196,19 +194,20 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                             />
                             {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
                         </div>
-
+                        
                         <div className="form-group">
-                            <label htmlFor="is_admin">
-                                <input
-                                    type="checkbox"
-                                    id="is_admin"
-                                    name="is_admin"
-                                    checked={formData.is_admin}
-                                    onChange={handleChange}
-                                    disabled={isSubmitting}
-                                />
-                                Administrador
-                            </label>
+                            <label htmlFor="confirm_password">Confirmar contraseña:</label>
+                            <input
+                                type="text"
+                                id="confirm_password"
+                                name="confirm_password"
+                                value={formData.confirm_password}
+                                onChange={handleChange}
+                                placeholder={isEditMode ? "Dejar vacío para mantener la contraseña actual" : "Contraseña (mínimo 6 caracteres)"}
+                                disabled={isSubmitting}
+                                required={!isEditMode}
+                            />
+                            {validationErrors.confirm_password && <span className="error-text">{validationErrors.confirm_password}</span>}
                         </div>
                     </div>
 

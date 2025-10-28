@@ -112,7 +112,6 @@ const AdminUsersTab = () => {
             });
             setUsuarioAEliminar(null);
             setOrdenamientoUsuarios({ campo: null, direccion: 'asc' });
-            setPaginaActualUsuarios(1);
         } catch (error) {
             logger.error("handleConfirmDeleteUsuario error", error);
             setAlertDialog({
@@ -165,7 +164,7 @@ const AdminUsersTab = () => {
     };
 
     const handleSaveUsuario = async () => {
-        const title = 'Usuario creado/actualizado';
+        const title = mostrarAgregarUsuarioModal? 'Usuario creado' : 'Usuario actualizado';
         const message = mostrarAgregarUsuarioModal
             ? 'El usuario se ha creado exitosamente'
             : 'El usuario se ha actualizado exitosamente';
