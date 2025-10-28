@@ -3,7 +3,7 @@
  * Centraliza toda la lógica de fetch y estado de actividades
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { actividadService } from '../services/actividadService';
 import logger from '../utils/logger';
 
@@ -16,7 +16,7 @@ export function useActividades(usuarioId = null) {
   /**
    * Cargar todas las actividades
    */
-  const fetchActividades = async () => {
+  const fetchActividades = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -29,12 +29,12 @@ export function useActividades(usuarioId = null) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /**
    * Cargar inscripciones del usuario
    */
-  const fetchInscripciones = async (uid) => {
+  const fetchInscripciones = useCallback(async (uid) => {
     if (!uid) return;
     try {
       const data = await actividadService.getInscripciones(uid);
@@ -43,12 +43,12 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - fetch inscripciones error', err);
       // No setear error global para no interrumpir el flujo
     }
-  };
+  }, []);
 
   /**
    * Crear nueva actividad
    */
-  const createActividad = async (actividadData) => {
+  const createActividad = useCallback(async (actividadData) => {
     try {
       const newActividad = await actividadService.createActividad(actividadData);
       setActividades((prev) => [...prev, newActividad]);
@@ -57,12 +57,12 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - create error', err);
       throw err;
     }
-  };
+  }, []);
 
   /**
    * Actualizar actividad existente
    */
-  const updateActividad = async (actividadId, actividadData) => {
+  const updateActividad = useCallback(async (actividadId, actividadData) => {
     try {
       const updatedActividad = await actividadService.updateActividad(actividadId, actividadData);
       setActividades((prev) =>
@@ -73,12 +73,12 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - update error', err);
       throw err;
     }
-  };
+  }, []);
 
   /**
    * Eliminar actividad
    */
-  const deleteActividad = async (actividadId) => {
+  const deleteActividad = useCallback(async (actividadId) => {
     try {
       await actividadService.deleteActividad(actividadId);
       setActividades((prev) => prev.filter((act) => act.id !== actividadId));
@@ -87,12 +87,12 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - delete error', err);
       throw err;
     }
-  };
+  }, []);
 
   /**
    * Inscribir usuario en actividad
    */
-  const enrollInActividad = async (usuarioIdParam, actividadId) => {
+  const enrollInActividad = useCallback(async (usuarioIdParam, actividadId) => {
     try {
       await actividadService.enrollInActividad(usuarioIdParam, actividadId);
       // Recargar inscripciones del usuario
@@ -102,12 +102,12 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - enroll error', err);
       throw err;
     }
-  };
+  }, [fetchInscripciones]);
 
   /**
    * Desincribir usuario de actividad
    */
-  const unenrollFromActividad = async (usuarioIdParam, actividadId) => {
+  const unenrollFromActividad = useCallback(async (usuarioIdParam, actividadId) => {
     try {
       await actividadService.unenrollFromActividad(usuarioIdParam, actividadId);
       // Recargar inscripciones del usuario
@@ -117,14 +117,14 @@ export function useActividades(usuarioId = null) {
       logger.error('useActividades - unenroll error', err);
       throw err;
     }
-  };
+  }, [fetchInscripciones]);
 
   /**
    * Verificar si un usuario está inscrito en una actividad
    */
-  const estaInscripto = (actividadId) => {
+  const estaInscripto = useCallback((actividadId) => {
     return inscripciones.includes(actividadId);
-  };
+  }, [inscripciones]);
 
   return {
     actividades,

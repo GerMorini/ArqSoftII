@@ -7,13 +7,12 @@ import AlertDialog from '../components/AlertDialog';
 import "../styles/Actividades.css";
 import { useNavigate } from "react-router-dom";
 import { useActividades } from '../hooks/useActividades';
+import useCurrentUser from '../hooks/useCurrentUser';
 import logger from '../utils/logger';
 
 const Actividades = () => {
     const navigate = useNavigate();
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    const idUsuario = localStorage.getItem("idUsuario");
+    const { isLoggedIn, isAdmin, userId: idUsuario } = useCurrentUser();
 
     const {
         actividades,

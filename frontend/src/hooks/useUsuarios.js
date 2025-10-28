@@ -114,11 +114,7 @@ export function useUsuarios() {
    */
   const logout = useCallback(() => {
     try {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('idUsuario');
-      localStorage.removeItem('isAdmin');
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('username');
+      usuarioService.clearUserSession();
       logger.info('Sesión cerrada');
     } catch (err) {
       logger.error('Error en logout:', err);
@@ -127,18 +123,25 @@ export function useUsuarios() {
   }, []);
 
   /**
-   * Obtener usuario actual desde localStorage
+   * Obtener usuario actual decodificando el JWT
    */
   const getCurrentUser = useCallback(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (!isLoggedIn) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
       return null;
     }
-    return {
-      id_usuario: parseInt(localStorage.getItem('idUsuario')),
-      username: localStorage.getItem('username'),
-      is_admin: localStorage.getItem('isAdmin') === 'true'
-    };
+    try {
+      const { getTokenPayload } = require('../utils/tokenUtils');
+      const payload = getTokenPayload(token);
+      return {
+        id_usuario: payload.id_usuario,
+        username: payload.username,
+        is_admin: payload.is_admin
+      };
+    } catch (error) {
+      logger.error('Error al decodificar token en getCurrentUser:', error);
+      return null;
+    }
   }, []);
 
   return {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PageTransition from '../components/PageTransition';
 import AlertDialog from '../components/AlertDialog';
 import { useUsuarios } from '../hooks/useUsuarios';
+import { usuarioService } from '../services/usuarioService';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ const Register = () => {
         confirmPassword: ""
     });
     const [alertDialog, setAlertDialog] = useState(null);
+    const [validationErrors, setValidationErrors] = useState({});
     const navigate = useNavigate();
     const { register, loading } = useUsuarios();
 
@@ -28,9 +30,22 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setValidationErrors({});
 
         try {
-            // Tu lógica de validación aquí
+            // Validar formulario
+            const errors = usuarioService.validateUsuarioForm(formData, true);
+
+            // Validar que las contraseñas coincidan
+            if (formData.password !== formData.confirmPassword) {
+                errors.confirmPassword = 'Las contraseñas no coinciden';
+            }
+
+            if (Object.keys(errors).length > 0) {
+                setValidationErrors(errors);
+                return;
+            }
+
             const { confirmPassword, ...registerData } = formData;
             await register(registerData);
             navigate("/");
@@ -70,6 +85,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.nombre && <span className="error-text">{validationErrors.nombre}</span>}
                     </div>
 
                     <div className="input-group">
@@ -82,6 +98,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.apellido && <span className="error-text">{validationErrors.apellido}</span>}
                     </div>
 
                     <div className="input-group">
@@ -94,6 +111,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.email && <span className="error-text">{validationErrors.email}</span>}
                     </div>
 
                     <div className="input-group">
@@ -106,6 +124,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.username && <span className="error-text">{validationErrors.username}</span>}
                     </div>
 
                     <div className="input-group">
@@ -118,6 +137,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
                     </div>
 
                     <div className="input-group">
@@ -130,6 +150,7 @@ const Register = () => {
                             disabled={loading}
                             required
                         />
+                        {validationErrors.confirmPassword && <span className="error-text">{validationErrors.confirmPassword}</span>}
                     </div>
 
                     <button type="submit" disabled={loading}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { isTokenExpired } from '../utils/tokenUtils';
 import { usuarioService } from '../services/usuarioService';
+import useCurrentUser from './useCurrentUser';
 import logger from '../utils/logger';
 
 /**
@@ -11,6 +12,7 @@ import logger from '../utils/logger';
  */
 export function useTokenValidation(setAlertDialog) {
   const [hasChecked, setHasChecked] = useState(false);
+  const { isLoggedIn } = useCurrentUser();
 
   useEffect(() => {
     // Solo verificar una vez por carga de página
@@ -19,7 +21,6 @@ export function useTokenValidation(setAlertDialog) {
     }
 
     const token = localStorage.getItem('access_token');
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
 
     // Si no hay token o no está logueado, no hay nada que verificar
     if (!token || !isLoggedIn) {
@@ -45,5 +46,5 @@ export function useTokenValidation(setAlertDialog) {
     }
 
     setHasChecked(true);
-  }, [setAlertDialog, hasChecked]);
+  }, [setAlertDialog, hasChecked, isLoggedIn]);
 }

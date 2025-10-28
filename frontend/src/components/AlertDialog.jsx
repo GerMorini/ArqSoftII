@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import '../styles/AlertDialog.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
@@ -8,8 +7,6 @@ const AlertDialog = ({
     onClose,
     type = 'success'
 }) => {
-    const dialogRef = useRef(null);
-
     useEscapeKey(onClose);
 
     const handleBackdropClick = (e) => {
@@ -25,7 +22,6 @@ const AlertDialog = ({
                 role="alert"
                 aria-labelledby="alert-title"
                 aria-describedby="alert-message"
-                ref={dialogRef}
                 tabIndex="-1"
             >
                 <div className="alert-icon">

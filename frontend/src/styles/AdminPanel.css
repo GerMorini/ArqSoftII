@@ -6,9 +6,19 @@
     background-color: #f5f5f5;
 }
 
-.admin-container h2 {
-    color: #1a1a1a;
+/* Header with tabs on the right */
+.admin-header-with-tabs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.admin-header-with-tabs h2 {
+    color: #1a1a1a;
+    margin: 0;
     font-size: 1.8rem;
     font-weight: 600;
 }
@@ -18,6 +28,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 2rem;
     margin-bottom: 2rem;
     border-bottom: 2px solid #ecf0f1;
     gap: 2rem;
@@ -26,7 +37,7 @@
 .admin-tabs {
     display: flex;
     gap: 1rem;
-    flex: 1;
+    align-items: center;
 }
 
 .tab-button {
@@ -198,18 +209,6 @@
     color: #f44336;
 }
 
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding: 0 1rem;
-}
-
-.admin-header h2 {
-    margin: 0;
-}
-
 .btn-agregar {
     background-color: #4CAF50;
     color: white;
@@ -322,13 +321,12 @@
         width: 100%;
     }
 
-    .admin-header {
+    .admin-header-with-tabs {
         flex-direction: column;
         gap: 1rem;
         align-items: stretch;
         text-align: center;
         width: 100%;
-        padding: 0;
     }
 
     .btn-agregar {
@@ -348,6 +346,7 @@
 
     .admin-tabs {
         flex-wrap: wrap;
+        justify-content: center;
     }
 
     .tab-button {

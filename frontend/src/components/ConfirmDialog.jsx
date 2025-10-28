@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import '../styles/ConfirmDialog.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
@@ -12,8 +11,6 @@ const ConfirmDialog = ({
     isDangerous = false,
     details = null
 }) => {
-    const dialogRef = useRef(null);
-
     useEscapeKey(onCancel);
 
     const handleBackdropClick = (e) => {
@@ -29,7 +26,6 @@ const ConfirmDialog = ({
                 role="alertdialog"
                 aria-labelledby="confirm-title"
                 aria-describedby="confirm-message"
-                ref={dialogRef}
                 tabIndex="-1"
             >
                 <h2 id="confirm-title" className="confirm-dialog-title">

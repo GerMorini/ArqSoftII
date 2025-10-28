@@ -1,12 +1,12 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
+import useCurrentUser from "../hooks/useCurrentUser";
 import "../styles/Header.css";
+import { usuarioService } from "../services/usuarioService"
 
 const Header = () => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    const username = localStorage.getItem("username") || "Usuario";
+    const { isLoggedIn, isAdmin, username } = useCurrentUser();
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -17,11 +17,7 @@ const Header = () => {
     };
 
     const handleConfirmLogout = () => {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("isAdmin");
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("idUsuario");
-        localStorage.removeItem("username");
+        usuarioService.clearUserSession();
         setShowLogoutDialog(false);
         setIsMobileMenuOpen(false);
         navigate("/login");
@@ -110,7 +106,7 @@ const Header = () => {
                                 aria-label="Cerrar sesión"
                                 title="Cerrar sesión"
                             >
-                                ✖️ Salir
+                                ✖️ Cerrar sesión
                             </button>
                         ) : (
                             <button

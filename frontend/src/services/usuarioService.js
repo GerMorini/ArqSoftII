@@ -15,29 +15,17 @@ const USERS_URL = config.USERS_URL;
  */
 const clearUserSession = () => {
   localStorage.removeItem('access_token');
-  localStorage.removeItem('idUsuario');
-  localStorage.removeItem('isAdmin');
-  localStorage.removeItem('isLoggedIn');
-  localStorage.removeItem('username');
   logger.info('Sesión de usuario limpiada');
 };
 
 /**
  * Guardar sesión de usuario en localStorage
+ * Solo guarda el JWT token - los datos del usuario se decodifican on-demand
  */
 const storeUserSession = (accessToken, username) => {
   try {
-    const payload = getTokenPayload(accessToken);
-    const admin = payload.is_admin;
-    const idUsuario = payload.id_usuario;
-
     localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('idUsuario', parseInt(idUsuario));
-    localStorage.setItem('isAdmin', admin.toString());
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('username', username);
-
-    logger.info('Sesión de usuario guardada', { username, idUsuario });
+    logger.info('Sesión de usuario guardada', { username });
   } catch (error) {
     logger.error('Error al guardar sesión de usuario', error);
     throw error;
@@ -359,24 +347,8 @@ export const usuarioService = {
       throw error;
     }
   },
-
-  /**
-   * Validar email
-   */
   validateEmail,
-
-  /**
-   * Validar contraseña
-   */
   validatePassword,
-
-  /**
-   * Validar formulario de usuario
-   */
   validateUsuarioForm,
-
-  /**
-   * Limpiar sesión de usuario
-   */
   clearUserSession,
 };
