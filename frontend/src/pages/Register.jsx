@@ -1,9 +1,9 @@
 import { useState } from "react";
 import '../styles/Register.css';
 import { useNavigate } from "react-router-dom";
-import { storeUserSession } from "./Login";
-import config from '../config/env';
 import PageTransition from '../components/PageTransition';
+import AlertDialog from '../components/AlertDialog';
+import { useUsuarios } from '../hooks/useUsuarios';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -14,10 +14,9 @@ const Register = () => {
         password: "",
         confirmPassword: ""
     });
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [alertDialog, setAlertDialog] = useState(null);
     const navigate = useNavigate();
-    const USERS_URL = config.USERS_URL;
+    const { register, loading } = useUsuarios();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,55 +28,23 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError("");
-
-        if (formData.password !== formData.confirmPassword) {
-            setError("Las contraseñas no coinciden");
-            setIsLoading(false);
-            return;
-        }
-        
-        // regex para validación de email
-        if (! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            setError("El email ingresado no es válido");
-            setIsLoading(false);
-            return;
-        }
 
         try {
-            console.log(`USERS_URL = ${USERS_URL}`);
-            const response = await fetch(`${USERS_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nombre: formData.nombre.trim(),
-                    apellido: formData.apellido.trim(),
-                    email: formData.email.trim(),
-                    username: formData.username.trim(),
-                    password: formData.password
-                })
+            // Tu lógica de validación aquí
+            const { confirmPassword, ...registerData } = formData;
+            await register(registerData);
+            navigate("/");
+        } catch (err) {
+            setAlertDialog({
+                title: "Error al registrar",
+                message: err.message || "Error al registrar usuario",
+                type: "error"
             });
-
-            if (response.ok) {
-                alert("Usuario registrado exitosamente");
-
-                const data = await response.json();
-                storeUserSession(data.access_token)
-
-                navigate("/");
-            } else {
-                const errorData = await response.json();
-                setError(errorData.error || "Error al registrar usuario");
-            }
-        } catch (error) {
-            setError("Error de conexión");
-            console.error("Error de conexión:", error);
-        } finally {
-            setIsLoading(false);
         }
+    };
+
+    const handleAlertClose = () => {
+        setAlertDialog(null);
     };
 
     const handleBack = () => {
@@ -93,8 +60,6 @@ const Register = () => {
                 <form className="register-form" onSubmit={handleSubmit}>
                     <h2>Registro de Usuario</h2>
 
-                    {error && <div className="error-message">{error}</div>}
-
                     <div className="input-group">
                         <input
                             type="text"
@@ -102,7 +67,7 @@ const Register = () => {
                             placeholder="Nombre"
                             value={formData.nombre}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -114,7 +79,7 @@ const Register = () => {
                             placeholder="Apellido"
                             value={formData.apellido}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -126,7 +91,7 @@ const Register = () => {
                             placeholder="Correo electrónico"
                             value={formData.email}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -138,7 +103,7 @@ const Register = () => {
                             placeholder="Nombre de usuario"
                             value={formData.username}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -150,7 +115,7 @@ const Register = () => {
                             placeholder="Contraseña"
                             value={formData.password}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -162,13 +127,13 @@ const Register = () => {
                             placeholder="Confirmar Contraseña"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
 
-                    <button type="submit" disabled={isLoading}>
-                        {isLoading ? "Registrando..." : "Registrarse"}
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Registrando..." : "Registrarse"}
                     </button>
 
                     <div className="login-link">
@@ -176,8 +141,17 @@ const Register = () => {
                     </div>
                 </form>
             </div>
+
+            {alertDialog && (
+                <AlertDialog
+                    title={alertDialog.title}
+                    message={alertDialog.message}
+                    type={alertDialog.type}
+                    onClose={handleAlertClose}
+                />
+            )}
         </PageTransition>
     );
 };
 
-export default Register; 
+export default Register;

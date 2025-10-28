@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import '../styles/ConfirmDialog.css';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 const ConfirmDialog = ({
     title,
@@ -13,20 +14,7 @@ const ConfirmDialog = ({
 }) => {
     const dialogRef = useRef(null);
 
-    useEffect(() => {
-        const handleEscapeKey = (event) => {
-            if (event.key === 'Escape') {
-                onCancel();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscapeKey);
-        dialogRef.current?.focus();
-
-        return () => {
-            document.removeEventListener('keydown', handleEscapeKey);
-        };
-    }, [onCancel]);
+    useEscapeKey(onCancel);
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {

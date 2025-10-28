@@ -24,7 +24,7 @@ const Header = () => {
         localStorage.removeItem("username");
         setShowLogoutDialog(false);
         setIsMobileMenuOpen(false);
-        navigate("/");
+        navigate("/login");
     };
 
     const handleCancelLogout = () => {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ActivityFormModal.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
-import { validateActividadForm } from '../utils/actividadValidation';
 import { DIAS_SEMANA } from '../constants/actividadConstants';
 import { actividadService } from '../services/actividadService';
 import logger from '../utils/logger';
@@ -40,7 +39,6 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
             };
             setFormData(actividadData);
         } else {
-            // Reset para modo create
             setFormData({
                 id_actividad: '',
                 titulo: '',
@@ -74,7 +72,8 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
         e.preventDefault();
         setSubmitError('');
 
-        const errors = validateActividadForm(formData);
+        // Validar formulario
+        const errors = actividadService.validateActividadForm(formData);
         setValidationErrors(errors);
 
         if (Object.keys(errors).length > 0) {
@@ -136,6 +135,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                 value={formData.titulo}
                                 onChange={handleChange}
                                 placeholder="Nombre de la actividad"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.titulo && <span className="error-text">{validationErrors.titulo}</span>}
@@ -150,6 +150,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                 value={formData.instructor}
                                 onChange={handleChange}
                                 placeholder="Nombre del instructor"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.instructor && <span className="error-text">{validationErrors.instructor}</span>}
@@ -163,6 +164,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                     name="dia"
                                     value={formData.dia}
                                     onChange={handleChange}
+                                    disabled={isSubmitting}
                                     required
                                 >
                                     <option value="">Seleccione un día</option>
@@ -189,6 +191,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                     value={formData.cupo}
                                     onChange={handleChange}
                                     placeholder="Cantidad de lugares"
+                                    disabled={isSubmitting}
                                     required
                                     min="1"
                                 />
@@ -206,6 +209,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                     value={formData.hora_inicio}
                                     onChange={handleChange}
                                     step="1800"
+                                    disabled={isSubmitting}
                                     required
                                 />
                                 {validationErrors.hora_inicio && <span className="error-text">{validationErrors.hora_inicio}</span>}
@@ -220,6 +224,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                     value={formData.hora_fin}
                                     onChange={handleChange}
                                     step="1800"
+                                    disabled={isSubmitting}
                                     required
                                 />
                                 {validationErrors.hora_fin && <span className="error-text">{validationErrors.hora_fin}</span>}
@@ -235,6 +240,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                 value={formData.descripcion}
                                 onChange={handleChange}
                                 placeholder="Descripción de la actividad"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.descripcion && <span className="error-text">{validationErrors.descripcion}</span>}
@@ -249,6 +255,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                                 value={formData.foto_url}
                                 onChange={handleChange}
                                 placeholder="https://ejemplo.com/foto.jpg"
+                                disabled={isSubmitting}
                             />
                             {validationErrors.foto_url && <span className="error-text">{validationErrors.foto_url}</span>}
                         </div>

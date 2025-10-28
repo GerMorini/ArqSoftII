@@ -1,9 +1,9 @@
 /**
- * Decodifica un JWT token
+ * Decodifica un JWT token y extrae el payload
  * @param {string} token - El token JWT
  * @returns {object|null} - El payload decodificado o null si no es válido
  */
-export function decodeToken(token) {
+export function getTokenPayload(token) {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
@@ -22,7 +22,7 @@ export function decodeToken(token) {
  * @returns {boolean} - true si el token está expirado, false si es válido
  */
 export function isTokenExpired(token) {
-  const payload = decodeToken(token);
+  const payload = getTokenPayload(token);
 
   if (!payload || !payload.exp) {
     return true; // Si no tiene exp claim, considerarlo expirado
@@ -41,7 +41,7 @@ export function isTokenExpired(token) {
  * @returns {number|null} - Segundos restantes o null si el token es inválido
  */
 export function getTokenTimeRemaining(token) {
-  const payload = decodeToken(token);
+  const payload = getTokenPayload(token);
 
   if (!payload || !payload.exp) {
     return null;
@@ -52,15 +52,4 @@ export function getTokenTimeRemaining(token) {
   const remaining = (expirationTime - currentTime) / 1000;
 
   return remaining > 0 ? remaining : 0;
-}
-
-/**
- * Limpia todos los datos de sesión del usuario
- */
-export function clearAuthSession() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('idUsuario');
-  localStorage.removeItem('isAdmin');
-  localStorage.removeItem('isLoggedIn');
-  localStorage.removeItem('username');
 }

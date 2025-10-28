@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ActivityFormModal.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
-import { validateUsuarioForm } from '../utils/usuarioValidation';
 import { usuarioService } from '../services/usuarioService';
 import logger from '../utils/logger';
-import config from '../config/env'
 
 const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -18,7 +16,6 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
     const [submitError, setSubmitError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const USERS_URL = config.USERS_URL
 
     useEscapeKey(onClose);
 
@@ -35,7 +32,6 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
             };
             setFormData(usuarioData);
         } else {
-            // Reset para modo create
             setFormData({
                 nombre: '',
                 apellido: '',
@@ -66,8 +62,9 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
         e.preventDefault();
         setSubmitError('');
 
+        // Validar formulario
         const isCreateMode = mode === 'create';
-        const errors = validateUsuarioForm(formData, isCreateMode);
+        const errors = usuarioService.validateUsuarioForm(formData, isCreateMode);
         setValidationErrors(errors);
 
         if (Object.keys(errors).length > 0) {
@@ -87,28 +84,8 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
             }
 
             if (mode === 'create') {
-                // Para crear usuarios, usamos el endpoint de registro
-                const response = await fetch(`${USERS_URL}/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        nombre: formData.nombre.trim(),
-                        apellido: formData.apellido.trim(),
-                        username: formData.username.trim(),
-                        email: formData.email.trim(),
-                        password: formData.password,
-                        is_admin: formData.is_admin
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Error al crear el usuario');
-                }
+                await usuarioService.createUsuarioAdmin(formData);
             } else {
-                // Para editar usuarios
                 const updateData = {
                     nombre: formData.nombre.trim(),
                     apellido: formData.apellido.trim(),
@@ -116,7 +93,6 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                     is_admin: formData.is_admin
                 };
 
-                // Solo enviar contraseña si se ingresó una nueva
                 if (formData.password.trim()) {
                     updateData.password = formData.password;
                 }
@@ -155,6 +131,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 value={formData.nombre}
                                 onChange={handleChange}
                                 placeholder="Nombre del usuario"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.nombre && <span className="error-text">{validationErrors.nombre}</span>}
@@ -169,6 +146,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 value={formData.apellido}
                                 onChange={handleChange}
                                 placeholder="Apellido del usuario"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.apellido && <span className="error-text">{validationErrors.apellido}</span>}
@@ -183,6 +161,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="correo@ejemplo.com"
+                                disabled={isSubmitting}
                                 required
                             />
                             {validationErrors.email && <span className="error-text">{validationErrors.email}</span>}
@@ -197,8 +176,8 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 value={formData.username}
                                 onChange={handleChange}
                                 placeholder="nombre_usuario"
+                                disabled={isSubmitting || isEditMode}
                                 required
-                                disabled={isEditMode}
                             />
                             {validationErrors.username && <span className="error-text">{validationErrors.username}</span>}
                         </div>
@@ -212,9 +191,24 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder={isEditMode ? "Dejar vacío para mantener la contraseña actual" : "Contraseña (mínimo 6 caracteres)"}
+                                disabled={isSubmitting}
                                 required={!isEditMode}
                             />
                             {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="is_admin">
+                                <input
+                                    type="checkbox"
+                                    id="is_admin"
+                                    name="is_admin"
+                                    checked={formData.is_admin}
+                                    onChange={handleChange}
+                                    disabled={isSubmitting}
+                                />
+                                Administrador
+                            </label>
                         </div>
                     </div>
 

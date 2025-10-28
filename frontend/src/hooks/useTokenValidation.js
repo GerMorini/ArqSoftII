@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { isTokenExpired, clearAuthSession } from '../utils/tokenUtils';
+import { isTokenExpired } from '../utils/tokenUtils';
+import { usuarioService } from '../services/usuarioService';
 import logger from '../utils/logger';
 
 /**
@@ -31,7 +32,7 @@ export function useTokenValidation(setAlertDialog) {
       logger.warn('Token expirado, limpiando sesión');
 
       // Limpiar la sesión inmediatamente
-      clearAuthSession();
+      usuarioService.clearUserSession();
 
       // Mostrar diálogo de expiración
       // El redirect ocurrirá cuando el usuario haga click en "Aceptar"

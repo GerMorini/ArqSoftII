@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import '../styles/AlertDialog.css';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 const AlertDialog = ({
     title,
@@ -9,20 +10,7 @@ const AlertDialog = ({
 }) => {
     const dialogRef = useRef(null);
 
-    useEffect(() => {
-        const handleEscapeKey = (event) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscapeKey);
-        dialogRef.current?.focus();
-
-        return () => {
-            document.removeEventListener('keydown', handleEscapeKey);
-        };
-    }, [onClose]);
+    useEscapeKey(onClose);
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {

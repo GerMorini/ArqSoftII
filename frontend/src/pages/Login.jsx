@@ -1,70 +1,34 @@
 import { useState } from "react";
 import '../styles/Login.css';
 import { useNavigate } from "react-router-dom";
-import config from '../config/env';
 import PageTransition from '../components/PageTransition';
-
-const getTokenPayload = (token) => {
-    const parts = token.split('.');
-    const decodedPaylod = atob(parts[1]);
-
-    return JSON.parse(decodedPaylod);
-}
-
-const storeUserSession = (accessToken, username) => {
-    const payload = getTokenPayload(accessToken)
-    const admin = payload.is_admin;
-    const idUsuario = payload.id_usuario
-
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("idUsuario", parseInt(idUsuario));
-    localStorage.setItem("isAdmin", admin.toString());
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("username", username);
-};
+import AlertDialog from '../components/AlertDialog';
+import { useUsuarios } from '../hooks/useUsuarios';
 
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [alertDialog, setAlertDialog] = useState(null);
     const navigate = useNavigate();
-    const USERS_URL = config.USERS_URL;
+    const { login, loading } = useUsuarios();
 
-    const handlerLogin = async (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError("");
 
         try {
-            console.log(`USERS_URL = ${USERS_URL}`);
-            const response = await fetch(`${USERS_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username.trim(),
-                    password: password
-                })
+            await login(username, password);
+            navigate("/actividades");
+        } catch (err) {
+            setAlertDialog({
+                title: "Error de autenticación",
+                message: err.message || "Usuario o contraseña incorrectos",
+                type: "error"
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                storeUserSession(data.access_token, username)
-
-                navigate("/");
-            } else {
-                const errorData = await response.json();
-                setError(errorData.error || "Error de autenticación");
-            }
-
-        } catch (error) {
-            setError("Error de conexión");
-            console.error("Error de conexión:", error);
-        } finally {
-            setIsLoading(false);
         }
+    };
+
+    const handleAlertClose = () => {
+        setAlertDialog(null);
     };
 
     const handleBack = () => {
@@ -77,10 +41,8 @@ const Login = () => {
                 <button onClick={handleBack} className="back-button">
                     ← Inicio
                 </button>
-                <form className="login-form" onSubmit={handlerLogin}>
+                <form className="login-form" onSubmit={handleLogin}>
                     <h2>Iniciar Sesión</h2>
-
-                    {error && <div className="error-message">{error}</div>}
 
                     <div className="input-group">
                         <input
@@ -88,7 +50,7 @@ const Login = () => {
                             placeholder="Usuario"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
@@ -99,13 +61,13 @@ const Login = () => {
                             placeholder="Contraseña"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            disabled={isLoading}
+                            disabled={loading}
                             required
                         />
                     </div>
 
-                    <button type="submit" disabled={isLoading}>
-                        {isLoading ? "Ingresando..." : "Ingresar"}
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Ingresando..." : "Ingresar"}
                     </button>
 
                     <div className="register-link">
@@ -113,9 +75,17 @@ const Login = () => {
                     </div>
                 </form>
             </div>
+
+            {alertDialog && (
+                <AlertDialog
+                    title={alertDialog.title}
+                    message={alertDialog.message}
+                    type={alertDialog.type}
+                    onClose={handleAlertClose}
+                />
+            )}
         </PageTransition>
     );
 };
 
-export { storeUserSession };
 export default Login;
