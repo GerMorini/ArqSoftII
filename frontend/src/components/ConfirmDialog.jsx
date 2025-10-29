@@ -1,5 +1,6 @@
 import '../styles/ConfirmDialog.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useEnterKey } from '../hooks/useEnterKey';
 
 const ConfirmDialog = ({
     title,
@@ -12,6 +13,7 @@ const ConfirmDialog = ({
     details = null
 }) => {
     useEscapeKey(onCancel);
+    useEnterKey(onConfirm);
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {
@@ -54,9 +56,6 @@ const ConfirmDialog = ({
                     </button>
                 </div>
 
-                <p className="confirm-dialog-hint">
-                    Presiona ESC para cerrar este diálogo
-                </p>
             </div>
         </div>
     );

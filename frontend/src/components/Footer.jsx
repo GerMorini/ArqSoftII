@@ -24,12 +24,9 @@ const Footer = () => {
                                 </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#contacto"
-                                    aria-label="Sección de contacto"
-                                >
+                                <Link to="/contacto" aria-label="Ir a página de contacto">
                                     Contacto
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </nav>

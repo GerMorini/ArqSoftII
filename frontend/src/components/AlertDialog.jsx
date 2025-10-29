@@ -1,5 +1,6 @@
 import '../styles/AlertDialog.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useEnterKey } from '../hooks/useEnterKey';
 
 const AlertDialog = ({
     title,
@@ -8,6 +9,7 @@ const AlertDialog = ({
     type = 'success'
 }) => {
     useEscapeKey(onClose);
+    useEnterKey(onClose);
 
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {
@@ -46,9 +48,6 @@ const AlertDialog = ({
                     Aceptar
                 </button>
 
-                <p className="alert-dialog-hint">
-                    Presiona ESC para cerrar
-                </p>
             </div>
         </div>
     );

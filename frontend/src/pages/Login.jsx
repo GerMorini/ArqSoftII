@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PageTransition from '../components/PageTransition';
 import AlertDialog from '../components/AlertDialog';
 import { useUsuarios } from '../hooks/useUsuarios';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 const Login = () => {
     const [username, setUsername] = useState("");
@@ -11,6 +12,7 @@ const Login = () => {
     const [alertDialog, setAlertDialog] = useState(null);
     const navigate = useNavigate();
     const { login, loading } = useUsuarios();
+    useScrollToTop();
 
     const handleLogin = async (e) => {
         e.preventDefault();

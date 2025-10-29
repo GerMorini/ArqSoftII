@@ -6,6 +6,8 @@ import Actividades from './pages/Actividades.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import Layout from './components/Layout.jsx';
 import Home from './pages/Home.jsx';
+import Contact from './pages/Contact.jsx';
+import NotFound from './pages/NotFound.jsx';
 import AlertDialog from './components/AlertDialog.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
@@ -29,8 +31,10 @@ function App() {
         <Route path="/" element={<Layout setAlertDialog={setAlertDialog} />}>
           <Route index element={<Home />} />
           <Route path="/actividades" element={<Actividades />} />
+          <Route path="/contacto" element={<Contact />} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel setAlertDialog={setAlertDialog} /></ProtectedRoute>} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {alertDialog && (

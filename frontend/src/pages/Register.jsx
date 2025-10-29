@@ -5,6 +5,7 @@ import PageTransition from '../components/PageTransition';
 import AlertDialog from '../components/AlertDialog';
 import { useUsuarios } from '../hooks/useUsuarios';
 import { usuarioService } from '../services/usuarioService';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ const Register = () => {
     const [validationErrors, setValidationErrors] = useState({});
     const navigate = useNavigate();
     const { register, loading } = useUsuarios();
+    useScrollToTop();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
