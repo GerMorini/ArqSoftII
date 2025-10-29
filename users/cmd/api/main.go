@@ -32,6 +32,7 @@ func main() {
 	router.GET("/users/:id", userController.GetByID)
 	router.POST("/register", userController.Create)
 	router.POST("/login", userController.Login)
+	router.GET("/auth", userController.IsAdmin)
 	router.PUT("/users/:id", userController.Update)
 	router.DELETE("/users/:id", userController.Delete)
 

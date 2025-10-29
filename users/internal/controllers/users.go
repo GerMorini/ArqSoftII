@@ -184,3 +184,29 @@ func (c *UsersController) Delete(ctx *gin.Context) {
 	log.Infof("usuario con ID %d eliminado exitosamente", id)
 	ctx.JSON(http.StatusOK, gin.H{"message": "usuario eliminado exitosamente"})
 }
+
+func (c *UsersController) IsAdmin(ctx *gin.Context) {
+	token := ctx.GetHeader("Authorization")
+	if token != "" {
+		token = strings.TrimPrefix(token, "Bearer ")
+	} else {
+		log.Warnf("usuario sin autorizacion: no se especifico header 'Authorization'")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "se necesita especificar el campo 'Authorization'"})
+		return
+	}
+
+	bool, err := c.service.IsAdmin(token)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "se necesita autenticación válida"})
+		return
+	}
+
+	if !bool {
+		log.Warnf("validacion negativa para token %s", token)
+		ctx.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	log.Infof("validacion como admin exitosa para el token: %s", token)
+	ctx.Status(http.StatusOK)
+}

@@ -7,6 +7,7 @@ import AdminPanel from './pages/AdminPanel.jsx';
 import Layout from './components/Layout.jsx';
 import Home from './pages/Home.jsx';
 import AlertDialog from './components/AlertDialog.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
   const [alertDialog, setAlertDialog] = useState(null);
@@ -27,8 +28,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/" element={<Layout setAlertDialog={setAlertDialog} />}>
           <Route index element={<Home />} />
-          <Route path="actividades" element={<Actividades />} />
-          <Route path="admin" element={<AdminPanel setAlertDialog={setAlertDialog} />} />
+          <Route path="/actividades" element={<Actividades />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPanel setAlertDialog={setAlertDialog} /></ProtectedRoute>} />
         </Route>
       </Routes>
 

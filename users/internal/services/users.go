@@ -21,6 +21,7 @@ type UsersService interface {
 	GetAll() ([]dto.UserDTO, error)
 	Update(id int, updateDTO dto.UserUpdateDTO) (dto.UserDTO, error)
 	Delete(id int) error
+	IsAdmin(token string) (bool, error)
 
 	GenerateToken(userdata dao.User) (string, error)
 	GetClaimsFromToken(tokenString string) (jwt.MapClaims, error)
@@ -227,4 +228,20 @@ func (s *UsersServiceImpl) Update(id int, updateDTO dto.UserUpdateDTO) (dto.User
 
 func (s *UsersServiceImpl) Delete(id int) error {
 	return s.repository.Delete(id)
+}
+
+func (s *UsersServiceImpl) IsAdmin(token string) (bool, error) {
+	claims, err := s.GetClaimsFromToken(token)
+	if err != nil {
+		log.Warnf("error al obtener claims del token para validación de admin")
+		return false, err
+	}
+
+	isAdmin, ok := claims["is_admin"].(bool)
+	if !ok {
+		log.Warnf("error al obtener is_admin de los claims")
+		return false, err
+	}
+
+	return isAdmin, nil
 }

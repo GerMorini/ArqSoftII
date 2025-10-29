@@ -366,6 +366,36 @@ export const usuarioService = {
       throw error;
     }
   },
+
+  /**
+   * Validar si el usuario actual es admin
+   * @returns {boolean} true si el usuario es admin (status 200), false en caso contrario
+   */
+  async checkAdminStatus() {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        logger.warn('No hay token disponible para validar estado de admin');
+        return false;
+      }
+
+      const response = await fetch(`${USERS_URL}/auth`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      // Solo retorna true si el status es 200
+      const isAdmin = response.status === 200;
+      logger.info('Estado de admin validado', { isAdmin, status: response.status });
+      return isAdmin;
+    } catch (error) {
+      logger.error('Error al validar estado de admin', error);
+      return false;
+    }
+  },
+
   validateEmail,
   validatePassword,
   validateUsuarioForm,
