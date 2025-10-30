@@ -134,6 +134,20 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 			set["capacidad_max"] = capMax
 		}
 	}
+	// If admin provided explicit users list, convert to integer slice and set it
+	if activity.UsersInscribed != nil {
+		var usuarios []int
+		for _, uid := range activity.UsersInscribed {
+			if uid == "" {
+				continue
+			}
+			if idint, err := strconv.Atoi(uid); err == nil {
+				usuarios = append(usuarios, idint)
+			}
+		}
+		// allow setting empty slice to clear inscriptions
+		set["usuarios_inscritos"] = usuarios
+	}
 	if len(set) == 0 {
 		return dto.ActivityAdministration{}, errors.New("no fields to update")
 	}

@@ -134,20 +134,15 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID parameter is required"})
 		return
 	}
-	//admin only
+	// require token (we need to know requester role)
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
 		return
 	}
-	if !isAdminFromClaims(claims) {
-		log.Warnf("operacion sin privilegios para el usuario: %s@%s", claims["username"], ctx.RemoteIP())
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can view activity by ID"})
-		return
-	}
 
-	act, err := c.service.GetByID(ctx.Request.Context(), id)
+	actAdmin, err := c.service.GetByID(ctx.Request.Context(), id)
 	if err != nil {
 		if err.Error() == "activity not found" {
 			log.Warnf("actividad no encontrada: %s", id)
@@ -159,8 +154,29 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 		return
 	}
 
-	log.Infof("actividad %s obtenida exitosamente por usuario: %s", id, claims["username"])
-	ctx.JSON(http.StatusOK, gin.H{"activity": act})
+	// If requester is admin, return the administration DTO (with users_inscritos, fecha)
+	if isAdminFromClaims(claims) {
+		log.Infof("actividad %s (admin view) obtenida exitosamente por usuario: %s", id, claims["username"])
+		ctx.JSON(http.StatusOK, gin.H{"activity": actAdmin})
+		return
+	}
+
+	// Non-admin users: return the public DTO (sin datos sensibles como usuarios inscritos)
+	public := dto.Activity{
+		ID:                 actAdmin.ID,
+		Nombre:             actAdmin.Nombre,
+		Descripcion:        actAdmin.Descripcion,
+		Profesor:           actAdmin.Profesor,
+		DiaSemana:          actAdmin.DiaSemana,
+		HoraInicio:         actAdmin.HoraInicio,
+		HoraFin:            actAdmin.HoraFin,
+		CapacidadMax:       actAdmin.CapacidadMax,
+		LugaresDisponibles: actAdmin.LugaresDisponibles,
+		FotoUrl:            actAdmin.FotoUrl,
+	}
+
+	log.Infof("actividad %s (public view) obtenida exitosamente por usuario: %s", id, claims["username"])
+	ctx.JSON(http.StatusOK, gin.H{"activity": public})
 }
 
 // Inscribir maneja POST /activities/:id/inscribir

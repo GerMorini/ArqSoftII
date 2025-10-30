@@ -2,10 +2,7 @@ module activities
 
 go 1.24.1
 
-require (
-	github.com/gin-gonic/gin v1.11.0
-	github.com/joho/godotenv v1.5.1
-)
+require github.com/gin-gonic/gin v1.11.0
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect

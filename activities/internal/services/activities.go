@@ -92,6 +92,22 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		}
 	}
 
+	// If admin provided an explicit users list, validate it against capacity
+	if activity.UsersInscribed != nil {
+		// determine capacity to compare: prefer updated capacity if provided, otherwise current
+		capToCheck := 0
+		if activity.CapacidadMax != "" {
+			fmt.Sscanf(activity.CapacidadMax, "%d", &capToCheck)
+		} else {
+			fmt.Sscanf(currentActivity.CapacidadMax, "%d", &capToCheck)
+		}
+		if capToCheck > 0 {
+			if len(activity.UsersInscribed) > capToCheck {
+				return dto.ActivityAdministration{}, fmt.Errorf("number of inscritos (%d) cannot exceed capacity (%d)", len(activity.UsersInscribed), capToCheck)
+			}
+		}
+	}
+
 	updated, err := s.repository.Update(ctx, id, activity)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("error updating activity in repository: %w", err)

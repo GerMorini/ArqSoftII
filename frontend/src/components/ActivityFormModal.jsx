@@ -4,6 +4,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DIAS_SEMANA } from '../constants/actividadConstants';
 import { actividadService } from '../services/actividadService';
 import logger from '../utils/logger';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave }) => {
     const [formData, setFormData] = useState({
@@ -15,11 +16,14 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
         hora_inicio: '',
         hora_fin: '',
         foto_url: '',
-        instructor: ''
+        instructor: '',
+        usuarios_inscritos_text: ''
     });
     const [submitError, setSubmitError] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const currentUser = useCurrentUser();
 
     useEscapeKey(onClose);
 
@@ -37,6 +41,14 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                 foto_url: actividad.foto_url || '',
                 instructor: actividad.instructor || ''
             };
+
+            // If admin view includes usuarios_inscritos, expose as comma-separated text for editing
+            if (currentUser.isAdmin && actividad.usuarios_inscritos) {
+                actividadData.usuarios_inscritos_text = actividad.usuarios_inscritos.join(',');
+            } else {
+                actividadData.usuarios_inscritos_text = '';
+            }
+
             setFormData(actividadData);
         } else {
             setFormData({
@@ -48,10 +60,11 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                 hora_inicio: '',
                 hora_fin: '',
                 foto_url: '',
-                instructor: ''
+                instructor: '',
+                usuarios_inscritos_text: ''
             });
         }
-    }, [mode, actividad]);
+    }, [mode, actividad, currentUser]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -96,6 +109,13 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                 ...formData,
                 cupo: formData.cupo.toString()
             };
+
+            // If admin edited the inscritos text, convert to array and include as usuarios_inscritos
+            if (currentUser.isAdmin && formData.usuarios_inscritos_text !== undefined) {
+                const raw = formData.usuarios_inscritos_text || '';
+                const list = raw.split(',').map(s => s.trim()).filter(s => s !== '');
+                dataToSend.usuarios_inscritos = list;
+            }
 
             if (mode === 'create') {
                 await actividadService.createActividad(dataToSend);
@@ -259,6 +279,21 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave 
                             />
                             {validationErrors.foto_url && <span className="error-text">{validationErrors.foto_url}</span>}
                         </div>
+
+                        {currentUser.isAdmin && (
+                            <div className="form-group">
+                                <label htmlFor="usuarios_inscritos_text">Usuarios inscritos (IDs, separados por comas):</label>
+                                <textarea
+                                    id="usuarios_inscritos_text"
+                                    name="usuarios_inscritos_text"
+                                    value={formData.usuarios_inscritos_text || ''}
+                                    onChange={handleChange}
+                                    placeholder="123, 456, 789"
+                                    disabled={isSubmitting}
+                                />
+                                <small>Dejar vacío para no modificar. Para eliminar todos, enviar campo vacío.</small>
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-buttons">

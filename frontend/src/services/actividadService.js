@@ -134,6 +134,31 @@ export const actividadService = {
   },
 
   /**
+   * Obtener una actividad por ID (admin view devuelve usuarios inscritos si el token es de admin)
+   */
+  async getActividadById(actividadId) {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${ACTIVITIES_URL}/activities/${actividadId}`, {
+        method: 'GET',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      if (!response.ok) {
+        logger.logApiError(`/activities/${actividadId}`, response.status, 'Failed to fetch actividad by id');
+        throw new Error('Error al cargar la actividad');
+      }
+
+      const data = await response.json();
+      // API returns { activity: ... }
+      return data.activity || data;
+    } catch (error) {
+      logger.error(`Error al obtener actividad ${actividadId}`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Obtener inscripciones de un usuario
    */
   async getInscripciones(usuarioId) {

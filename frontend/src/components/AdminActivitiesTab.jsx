@@ -6,6 +6,7 @@ import FilterBar from './FilterBar';
 import '../styles/AdminPanel.css';
 import '../styles/FilterBar.css';
 import { useActividades } from '../hooks/useActividades';
+import { actividadService } from '../services/actividadService';
 import logger from '../utils/logger';
 
 const AdminActivitiesTab = () => {
@@ -35,8 +36,15 @@ const AdminActivitiesTab = () => {
         fetchActividades();
     }, [fetchActividades]);
 
-    const handleEditar = (actividad) => {
-        setActividadEditar(actividad);
+    const handleEditar = async (actividad) => {
+        try {
+            // fetch full activity (admin view) before opening modal
+            const full = await actividadService.getActividadById(actividad.id_actividad);
+            setActividadEditar(full);
+        } catch (err) {
+            logger.error('Error al cargar actividad completa para editar', err);
+            alert('No se pudo cargar la actividad. Intente de nuevo.');
+        }
     };
 
     const handleCloseModal = () => {
