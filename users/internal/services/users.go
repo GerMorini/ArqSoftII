@@ -1,8 +1,6 @@
 package services
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"strings"
 	"time"
@@ -12,6 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UsersService interface {
@@ -61,7 +60,8 @@ func (s *UsersServiceImpl) Login(loginDTO dto.UserLoginDTO) (string, error) {
 		return "", err
 	}
 
-	if calculateSHA256(loginDTO.Password) != userdata.Password {
+	// Verify password with bcrypt
+	if !s.verifyPassword(userdata.Password, loginDTO.Password) {
 		return "", ErrIncorrectCredentials
 	}
 
@@ -74,12 +74,19 @@ func (s *UsersServiceImpl) Create(datos dto.UserMinDTO) (dto.UserMinDTO, error) 
 		return dto.UserMinDTO{}, err
 	}
 
+	// Hash password with bcrypt
+	hashedPassword, err := s.hashPassword(datos.Password)
+	if err != nil {
+		log.Errorf("error hashing password: %v", err)
+		return dto.UserMinDTO{}, err
+	}
+
 	var daoUser dao.User = dao.User{
 		Nombre:   datos.Nombre,
 		Apellido: datos.Apellido,
 		Username: datos.Username,
 		Email:    datos.Email,
-		Password: calculateSHA256(datos.Password),
+		Password: hashedPassword,
 	}
 
 	_, err = s.repository.Create(daoUser)
@@ -162,16 +169,32 @@ func validateUser(user dto.UserMinDTO) error {
 		return errors.New("se requiere especificar un email")
 	}
 
-	if strings.TrimSpace(user.Password) == "" {
+	if user.Password == "" {
 		return errors.New("se requiere especificar una contraseña")
 	}
 
 	return nil
 }
 
-func calculateSHA256(input string) string {
-	hash := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(hash[:])
+// hashPassword generates a bcrypt hash with automatic salt
+func (s *UsersServiceImpl) hashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost, // Cost = 10 (2^10 iterations)
+	)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
+}
+
+// verifyPassword compares plaintext password with bcrypt hash
+func (s *UsersServiceImpl) verifyPassword(hashedPassword, plainPassword string) bool {
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(hashedPassword),
+		[]byte(plainPassword),
+	)
+	return err == nil
 }
 
 func (s *UsersServiceImpl) GetAll() ([]dto.UserDTO, error) {
@@ -207,8 +230,13 @@ func (s *UsersServiceImpl) Update(id int, updateDTO dto.UserUpdateDTO) (dto.User
 	usuarioActual.IsAdmin = updateDTO.IsAdmin
 
 	// Si se proporciona una nueva contraseña, hashearla y actualizar
-	if strings.TrimSpace(updateDTO.Password) != "" {
-		usuarioActual.Password = calculateSHA256(updateDTO.Password)
+	if updateDTO.Password != "" {
+		hashedPassword, err := s.hashPassword(updateDTO.Password)
+		if err != nil {
+			log.Errorf("error hashing password: %v", err)
+			return dto.UserDTO{}, err
+		}
+		usuarioActual.Password = hashedPassword
 	}
 
 	usuarioActualizado, err := s.repository.Update(id, usuarioActual)

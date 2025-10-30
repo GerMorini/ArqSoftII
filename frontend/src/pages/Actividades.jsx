@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ActivityFormModal from '../components/ActivityFormModal';
 import ActivityCard from '../components/ActivityCard';
+import ActivityCardExpanded from '../components/ActivityCardExpanded';
 import FilterBar from '../components/FilterBar';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AlertDialog from '../components/AlertDialog';
@@ -29,7 +30,7 @@ const Actividades = () => {
 
     const [actividadesFiltradas, setActividadesFiltradas] = useState([]);
     const [actividadEditar, setActividadEditar] = useState(null);
-    const [expandedActividadId, setExpandedActividadId] = useState(null);
+    const [expandedActividad, setExpandedActividad] = useState(null);
     const [actividadAEliminar, setActividadAEliminar] = useState(null);
     const [actividadADesincribir, setActividadADesincribir] = useState(null);
     const [actividadAInscribir, setActividadAInscribir] = useState(null);
@@ -40,6 +41,8 @@ const Actividades = () => {
         dia: "",
         soloInscripto: false
     });
+    const [paginaActual, setPaginaActual] = useState(1);
+    const ITEMS_POR_PAGINA = 9;
 
     useEffect(() => {
         fetchActividades();
@@ -59,6 +62,7 @@ const Actividades = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+        setPaginaActual(1);
     };
 
     const handleLimpiarFiltros = () => {
@@ -68,6 +72,7 @@ const Actividades = () => {
             dia: "",
             soloInscripto: false
         });
+        setPaginaActual(1);
     };
 
     const filtrarActividades = () => {
@@ -104,6 +109,19 @@ const Actividades = () => {
         }
 
         setActividadesFiltradas(actividadesFiltradas);
+    };
+
+    // Paginación
+    const totalPaginas = Math.ceil(actividadesFiltradas.length / ITEMS_POR_PAGINA);
+    const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+    const actividadesPaginadas = actividadesFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+    const handlePrevPage = () => {
+        setPaginaActual(prev => Math.max(prev - 1, 1));
+    };
+
+    const handleNextPage = () => {
+        setPaginaActual(prev => Math.min(prev + 1, totalPaginas));
     };
 
     const handleEnroling = (actividad) => {
@@ -169,7 +187,7 @@ const Actividades = () => {
     };
 
     const handleEditar = (actividad) => {
-        setExpandedActividadId(null); // Cerramos el detalle expandido
+        setExpandedActividad(null); // Cerramos el detalle expandido
         setActividadEditar(actividad);
     };
 
@@ -222,10 +240,6 @@ const Actividades = () => {
 
     return (
         <div className="actividades-container">
-            {expandedActividadId && (
-                <div className="actividades-modal-bg" onClick={() => setExpandedActividadId(null)} />
-            )}
-
             <FilterBar
                 filtros={filtros}
                 onFiltroChange={handleFiltroChange}
@@ -234,29 +248,61 @@ const Actividades = () => {
                 soloInscriptoDisabled={false}
             />
 
-            <div className="actividades-grid">
-                {actividadesFiltradas.length === 0 ? (
-                    <div className="mensaje-no-actividades">
-                        No se encontraron actividades.
+            {actividadesFiltradas.length === 0 ? (
+                <div className="mensaje-no-actividades">
+                    No se encontraron actividades.
+                </div>
+            ) : (
+                <>
+                    <div className="actividades-grid">
+                        {actividadesPaginadas.map((actividad) => (
+                            <ActivityCard
+                                key={actividad.id_actividad}
+                                actividad={actividad}
+                                isLoggedIn={isLoggedIn}
+                                isAdmin={isAdmin}
+                                estaInscripto={estaInscripto}
+                                onToggleExpand={setExpandedActividad}
+                                onEditar={handleEditar}
+                                onEliminar={handleEliminar}
+                                onEnroling={handleEnroling}
+                                onUnenrolling={handleUnenrolling}
+                            />
+                        ))}
                     </div>
-                ) : (
-                    actividadesFiltradas.map((actividad) => (
-                        <ActivityCard
-                            key={actividad.id_actividad}
-                            actividad={actividad}
-                            isExpanded={expandedActividadId === actividad.id_actividad}
-                            isLoggedIn={isLoggedIn}
-                            isAdmin={isAdmin}
-                            estaInscripto={estaInscripto}
-                            onToggleExpand={setExpandedActividadId}
-                            onEditar={handleEditar}
-                            onEliminar={handleEliminar}
-                            onEnroling={handleEnroling}
-                            onUnenrolling={handleUnenrolling}
-                        />
-                    ))
-                )}
-            </div>
+
+                    {actividadesFiltradas.length > ITEMS_POR_PAGINA && (
+                        <div className="pagination-controls">
+                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
+                                Página {paginaActual} de {totalPaginas}
+                            </span>
+                            <button
+                                className="pagination-button"
+                                onClick={handlePrevPage}
+                                disabled={paginaActual === 1}
+                                aria-label="Página anterior"
+                            >
+                                ← Anterior
+                            </button>
+                            <button
+                                className="pagination-button"
+                                onClick={handleNextPage}
+                                disabled={paginaActual === totalPaginas}
+                                aria-label="Página siguiente"
+                            >
+                                Siguiente →
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {expandedActividad && (
+                <ActivityCardExpanded
+                    actividad={expandedActividad}
+                    onClose={() => setExpandedActividad(null)}
+                />
+            )}
 
             {actividadEditar && (
                 <ActivityFormModal

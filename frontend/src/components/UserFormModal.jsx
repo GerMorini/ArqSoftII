@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ActivityFormModal.css';
+import PasswordInput from './PasswordInput';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { usuarioService } from '../services/usuarioService';
 import logger from '../utils/logger';
@@ -182,8 +183,7 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
 
                         <div className="form-group">
                             <label htmlFor="password">Contraseña:</label>
-                            <input
-                                type="text"
+                            <PasswordInput
                                 id="password"
                                 name="password"
                                 value={formData.password}
@@ -191,14 +191,13 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 placeholder={isEditMode ? "Dejar vacío para mantener la contraseña actual" : "Contraseña (mínimo 6 caracteres)"}
                                 disabled={isSubmitting}
                                 required={!isEditMode}
+                                error={validationErrors.password}
                             />
-                            {validationErrors.password && <span className="error-text">{validationErrors.password}</span>}
                         </div>
                         
                         <div className="form-group">
                             <label htmlFor="confirm_password">Confirmar contraseña:</label>
-                            <input
-                                type="text"
+                            <PasswordInput
                                 id="confirm_password"
                                 name="confirm_password"
                                 value={formData.confirm_password}
@@ -206,8 +205,8 @@ const UserFormModal = ({ mode = 'create', usuario = null, onClose, onSave }) => 
                                 placeholder={isEditMode ? "Dejar vacío para mantener la contraseña actual" : "Contraseña (mínimo 6 caracteres)"}
                                 disabled={isSubmitting}
                                 required={!isEditMode}
+                                error={validationErrors.confirm_password}
                             />
-                            {validationErrors.confirm_password && <span className="error-text">{validationErrors.confirm_password}</span>}
                         </div>
                     </div>
 

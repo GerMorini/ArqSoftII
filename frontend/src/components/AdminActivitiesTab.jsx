@@ -252,10 +252,10 @@ const AdminActivitiesTab = () => {
 
                 {totalPaginas > 1 && (
                     <div className="pagination-container">
-                        <span className="pagination-info">
-                            Mostrando {inicio + 1} a {Math.min(inicio + ITEMS_POR_PAGINA, actividadesFiltradas.length)} de {actividadesFiltradas.length} actividades
-                        </span>
                         <div className="pagination-controls">
+                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
+                                Página {paginaActual} de {totalPaginas}
+                            </span>
                             <button
                                 className="pagination-btn"
                                 onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
@@ -263,9 +263,6 @@ const AdminActivitiesTab = () => {
                             >
                                 ← Anterior
                             </button>
-                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
-                                Página {paginaActual} de {totalPaginas}
-                            </span>
                             <button
                                 className="pagination-btn"
                                 onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}

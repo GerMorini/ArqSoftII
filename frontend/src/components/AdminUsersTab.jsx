@@ -353,10 +353,10 @@ const AdminUsersTab = () => {
 
                 {totalPaginasUsuarios > 1 && (
                     <div className="pagination-container">
-                        <span className="pagination-info">
-                            Mostrando {inicioUsuarios + 1} a {Math.min(inicioUsuarios + ITEMS_POR_PAGINA, usuariosFiltrados.length)} de {usuariosFiltrados.length} usuarios
-                        </span>
                         <div className="pagination-controls">
+                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
+                                Página {paginaActualUsuarios} de {totalPaginasUsuarios}
+                            </span>
                             <button
                                 className="pagination-btn"
                                 onClick={() => setPaginaActualUsuarios(prev => Math.max(prev - 1, 1))}
@@ -364,9 +364,6 @@ const AdminUsersTab = () => {
                             >
                                 ← Anterior
                             </button>
-                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
-                                Página {paginaActualUsuarios} de {totalPaginasUsuarios}
-                            </span>
                             <button
                                 className="pagination-btn"
                                 onClick={() => setPaginaActualUsuarios(prev => Math.min(prev + 1, totalPaginasUsuarios))}
