@@ -110,7 +110,7 @@ const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave,
 
             const dataToSend = {
                 ...formData,
-                cupo: formData.cupo
+                cupo: parseInt(formData.cupo, 10)  // Convertir a número
             };
 
             if (mode === 'create') {
