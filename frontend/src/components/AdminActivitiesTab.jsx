@@ -289,6 +289,7 @@ const AdminActivitiesTab = () => {
                     actividad={actividadEditar}
                     onClose={handleCloseModal}
                     onSave={handleSaveEdit}
+                    inscriptionsEdit={true}
                 />
             )}
 

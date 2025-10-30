@@ -82,13 +82,10 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 	}
 
 	// Validar que la nueva capacidad no sea menor a la cantidad de inscritos
-	if activity.CapacidadMax != "" {
-		var newCapacity int
-		if _, err := fmt.Sscanf(activity.CapacidadMax, "%d", &newCapacity); err == nil {
-			inscriptosCount := len(currentActivity.UsersInscribed)
-			if newCapacity < inscriptosCount {
-				return dto.ActivityAdministration{}, fmt.Errorf("capacidadMax cannot be less than the number of inscribed users (%d)", inscriptosCount)
-			}
+	if activity.CapacidadMax > 0 {
+		var inscriptosCount int = len(currentActivity.UsersInscribed)
+		if activity.CapacidadMax < inscriptosCount {
+			return dto.ActivityAdministration{}, fmt.Errorf("capacidadMax cannot be less than the number of inscribed users (%d)", inscriptosCount)
 		}
 	}
 
@@ -96,10 +93,10 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 	if activity.UsersInscribed != nil {
 		// determine capacity to compare: prefer updated capacity if provided, otherwise current
 		capToCheck := 0
-		if activity.CapacidadMax != "" {
-			fmt.Sscanf(activity.CapacidadMax, "%d", &capToCheck)
+		if activity.CapacidadMax > 0 {
+			capToCheck = activity.CapacidadMax
 		} else {
-			fmt.Sscanf(currentActivity.CapacidadMax, "%d", &capToCheck)
+			capToCheck = currentActivity.CapacidadMax
 		}
 		if capToCheck > 0 {
 			if len(activity.UsersInscribed) > capToCheck {
@@ -151,19 +148,11 @@ func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) e
 	if strings.TrimSpace(a.HoraInicio) == "" || strings.TrimSpace(a.HoraFin) == "" {
 		return errors.New("horaInicio and horaFin are required and cannot be empty")
 	}
-	if strings.TrimSpace(a.CapacidadMax) == "" {
+	if a.CapacidadMax == 0 {
 		return errors.New("capacidadMax is required and cannot be empty")
 	}
-	if _, err := fmt.Sscanf(a.CapacidadMax, "%d", new(int)); err != nil {
-		return errors.New("capacidadMax must be a valid integer")
-	}
-	for i := 0; i < len(a.UsersInscribed); i++ {
-		if strings.TrimSpace(a.UsersInscribed[i]) == "" {
-			return fmt.Errorf("user ID at position %d cannot be empty", i)
-		}
-		if _, err := fmt.Sscanf(a.UsersInscribed[i], "%d", new(int)); err != nil {
-			return fmt.Errorf("user ID at position %d must be a valid integer", i)
-		}
+	if a.CapacidadMax < 0 {
+		return errors.New("capacidadMax cannot be negative")
 	}
 	if strings.TrimSpace(a.DiaSemana) == "" {
 		return errors.New("diaSemana is required and cannot be empty")

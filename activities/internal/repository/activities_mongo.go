@@ -128,25 +128,12 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 	if activity.FotoUrl != "" {
 		set["foto_url"] = activity.FotoUrl
 	}
-	if activity.CapacidadMax != "" {
-		capMax, err := strconv.ParseInt(activity.CapacidadMax, 10, 64)
-		if err == nil {
-			set["capacidad_max"] = capMax
-		}
+	if activity.CapacidadMax > 0 {
+		set["capacidad_max"] = activity.CapacidadMax
 	}
 	// If admin provided explicit users list, convert to integer slice and set it
 	if activity.UsersInscribed != nil {
-		var usuarios []int
-		for _, uid := range activity.UsersInscribed {
-			if uid == "" {
-				continue
-			}
-			if idint, err := strconv.Atoi(uid); err == nil {
-				usuarios = append(usuarios, idint)
-			}
-		}
-		// allow setting empty slice to clear inscriptions
-		set["usuarios_inscritos"] = usuarios
+		set["usuarios_inscritos"] = activity.UsersInscribed
 	}
 	if len(set) == 0 {
 		return dto.ActivityAdministration{}, errors.New("no fields to update")
@@ -225,14 +212,14 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 	if err != nil {
 		return "", fmt.Errorf("error getting activity from repository: %w", err)
 	}
-	capMax := 0
-	fmt.Sscanf(act.CapacidadMax, "%d", &capMax)
-	if len(act.UsersInscribed) >= (capMax) {
+	if len(act.UsersInscribed) >= (act.CapacidadMax) {
 		return "", errors.New("activity is full")
 	}
 	// check user not already inscribed
+	var userID_int int
+	fmt.Sscanf(userID, "%d", &userID_int)
 	for _, uid := range act.UsersInscribed {
-		if uid == userID {
+		if uid == userID_int {
 			return "", errors.New("user already inscribed")
 		}
 	}
@@ -263,8 +250,10 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 		return "", fmt.Errorf("error getting activity from repository: %w", err)
 	}
 	found := false
+	var userID_int int
+	fmt.Sscanf(userID, "%d", &userID_int)
 	for _, uid := range act.UsersInscribed {
-		if uid == userID {
+		if uid == userID_int {
 			found = true
 			break
 		}

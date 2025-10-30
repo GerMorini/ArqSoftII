@@ -10,7 +10,7 @@ type Activity struct {
 	DiaSemana          string `json:"dia"`
 	HoraInicio         string `json:"hora_inicio"`
 	HoraFin            string `json:"hora_fin"`
-	CapacidadMax       string `json:"cupo"`
+	CapacidadMax       int    `json:"cupo"`
 	LugaresDisponibles int    `json:"lugares_disponibles"`
 	FotoUrl            string `json:"foto_url"`
 }
@@ -19,7 +19,7 @@ type Activities []Activity
 
 type ActivityAdministration struct {
 	Activity
-	UsersInscribed []string `json:"usuarios_inscritos,omitempty"` // Array de User IDs (JSON: usuarios_inscritos)
+	UsersInscribed []int `json:"usuarios_inscritos,omitempty"` // Array de User IDs (JSON: usuarios_inscritos)
 	FechaCreacion  time.Time
 }
 

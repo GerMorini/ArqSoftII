@@ -2,7 +2,6 @@ package dao
 
 import (
 	"activities/internal/dto"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -37,21 +36,12 @@ func (dao ActivityDAO) ToDomain() dto.Activity {
 		HoraInicio:         dao.HoraInicio,
 		HoraFin:            dao.HoraFin,
 		FotoUrl:            dao.FotoUrl,
-		CapacidadMax:       fmt.Sprintf("%d", dao.CapacidadMax),
+		CapacidadMax:       dao.CapacidadMax,
 		LugaresDisponibles: lugaresDisponibles,
 	}
 }
 
 func FromDomainDAO(a dto.ActivityAdministration) ActivityDAO {
-	// Convertir []string de User IDs a []int
-	userIDs := make([]int, len(a.UsersInscribed))
-	for i, idStr := range a.UsersInscribed {
-		var id int
-		fmt.Sscanf(idStr, "%d", &id)
-		userIDs[i] = id
-	}
-	capMax := 0
-	fmt.Sscanf(a.CapacidadMax, "%d", &capMax)
 	return ActivityDAO{
 		// ID se asigna automáticamente en Create si es vacío
 		Nombre:            a.Nombre,
@@ -60,8 +50,8 @@ func FromDomainDAO(a dto.ActivityAdministration) ActivityDAO {
 		DiaSemana:         a.DiaSemana,
 		HoraInicio:        a.HoraInicio,
 		HoraFin:           a.HoraFin,
-		UsuariosInscritos: userIDs,
-		CapacidadMax:      capMax,
+		UsuariosInscritos: a.UsersInscribed,
+		CapacidadMax:      a.CapacidadMax,
 		FotoUrl:           a.FotoUrl,
 		Activa:            true, // Por defecto al crear es activa
 		FechaCreacion:     time.Now().UTC(),
@@ -69,11 +59,6 @@ func FromDomainDAO(a dto.ActivityAdministration) ActivityDAO {
 }
 
 func ToDomainAdministration(dao ActivityDAO) dto.ActivityAdministration {
-	// Convertir []int de User IDs a []string
-	userIDs := make([]string, len(dao.UsuariosInscritos))
-	for i, id := range dao.UsuariosInscritos {
-		userIDs[i] = fmt.Sprintf("%d", id)
-	}
 	lugaresDisponibles := dao.CapacidadMax - len(dao.UsuariosInscritos)
 	return dto.ActivityAdministration{
 		Activity: dto.Activity{
@@ -85,10 +70,10 @@ func ToDomainAdministration(dao ActivityDAO) dto.ActivityAdministration {
 			HoraInicio:         dao.HoraInicio,
 			HoraFin:            dao.HoraFin,
 			FotoUrl:            dao.FotoUrl,
-			CapacidadMax:       fmt.Sprintf("%d", dao.CapacidadMax),
+			CapacidadMax:       dao.CapacidadMax,
 			LugaresDisponibles: lugaresDisponibles,
 		},
-		UsersInscribed: userIDs,
+		UsersInscribed: dao.UsuariosInscritos,
 		FechaCreacion:  dao.FechaCreacion,
 	}
 }
