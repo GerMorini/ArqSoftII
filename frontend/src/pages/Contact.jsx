@@ -14,7 +14,7 @@ const Contact = () => {
         {
             id: 2,
             name: "Juan Fernandez Favarón",
-            email: "MAIL@ucc.edu.ar",
+            email: "2307329@ucc.edu.ar",
             role: "API de Actividades",
             initials: "FF",
             photo: "https://avatars.githubusercontent.com/u/163864272?v=4"
