@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ActivitiesRepository define las operaciones de datos para Activities
 type ActivitiesRepository interface {
 	List(ctx context.Context) ([]dto.Activity, error)
+	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
 	Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error)
 	GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error)
 	Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error)
@@ -23,6 +26,7 @@ type ActivitiesRepository interface {
 // ActivitiesService define la capa de servicios usada por controllers
 type ActivitiesService interface {
 	List(ctx context.Context) ([]dto.Activity, error)
+	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
 	Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error)
 	GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error)
 	Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error)
@@ -32,19 +36,33 @@ type ActivitiesService interface {
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
 }
 
+// RabbitMQPublisher interface para publicar eventos
+type RabbitMQPublisher interface {
+	Publish(ctx context.Context, action string, activityID string) error
+}
+
 // ActivitiesServiceImpl implementa ActivitiesService
 type ActivitiesServiceImpl struct {
-	repository ActivitiesRepository
+	repository     ActivitiesRepository
+	rabbitPublisher RabbitMQPublisher
 }
 
 // NewActivitiesService crea una nueva instancia del service
-func NewActivitiesService(repo ActivitiesRepository) *ActivitiesServiceImpl {
-	return &ActivitiesServiceImpl{repository: repo}
+func NewActivitiesService(repo ActivitiesRepository, rabbit RabbitMQPublisher) *ActivitiesServiceImpl {
+	return &ActivitiesServiceImpl{
+		repository:     repo,
+		rabbitPublisher: rabbit,
+	}
 }
 
 // List obtiene todas las actividades
 func (s *ActivitiesServiceImpl) List(ctx context.Context) ([]dto.Activity, error) {
 	return s.repository.List(ctx)
+}
+
+// GetMany obtiene multiples actividades por IDs (ignora IDs no encontrados)
+func (s *ActivitiesServiceImpl) GetMany(ctx context.Context, ids []string) ([]dto.Activity, error) {
+	return s.repository.GetMany(ctx, ids)
 }
 
 // Create valida y crea una nueva actividad
@@ -53,11 +71,27 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 		return dto.ActivityAdministration{}, fmt.Errorf("validation error: %w", err)
 	}
 
+	// Step 1: Create in MongoDB
 	created, err := s.repository.Create(ctx, activity)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("error creating activity in repository: %w", err)
 	}
 
+	// Step 2: Publish event to RabbitMQ
+	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID); err != nil {
+		log.Errorf("Failed to publish create event for activity %s: %v", created.ID, err)
+
+		// Rollback: delete the created activity from MongoDB
+		if deleteErr := s.repository.Delete(ctx, created.ID); deleteErr != nil {
+			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", created.ID, deleteErr)
+			return dto.ActivityAdministration{}, fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, deleteErr)
+		}
+
+		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", created.ID)
+		return dto.ActivityAdministration{}, fmt.Errorf("failed to publish create event, activity rolled back: %w", err)
+	}
+
+	log.Infof("Activity %s created and event published successfully", created.ID)
 	return created, nil
 }
 
@@ -105,25 +139,58 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		}
 	}
 
+	// Step 1: Update in MongoDB
 	updated, err := s.repository.Update(ctx, id, activity)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("error updating activity in repository: %w", err)
 	}
 
+	// Step 2: Publish event to RabbitMQ
+	if err := s.rabbitPublisher.Publish(ctx, "update", id); err != nil {
+		log.Errorf("Failed to publish update event for activity %s: %v", id, err)
+
+		// Rollback: restore the original activity in MongoDB
+		if _, restoreErr := s.repository.Update(ctx, id, currentActivity); restoreErr != nil {
+			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", id, restoreErr)
+			return dto.ActivityAdministration{}, fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, restoreErr)
+		}
+
+		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", id)
+		return dto.ActivityAdministration{}, fmt.Errorf("failed to publish update event, activity rolled back: %w", err)
+	}
+
+	log.Infof("Activity %s updated and event published successfully", id)
 	return updated, nil
 }
 
 // Delete elimina una actividad por ID
 func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
-	_, err := s.repository.GetByID(ctx, id)
+	// Step 0: Get the activity to be able to restore it if needed
+	activityToDelete, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("activity does not exist: %w", err)
 	}
 
+	// Step 1: Delete from MongoDB
 	if err := s.repository.Delete(ctx, id); err != nil {
 		return fmt.Errorf("error deleting activity in repository: %w", err)
 	}
 
+	// Step 2: Publish event to RabbitMQ
+	if err := s.rabbitPublisher.Publish(ctx, "delete", id); err != nil {
+		log.Errorf("Failed to publish delete event for activity %s: %v", id, err)
+
+		// Rollback: restore the deleted activity in MongoDB
+		if _, restoreErr := s.repository.Create(ctx, activityToDelete); restoreErr != nil {
+			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", id, restoreErr)
+			return fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, restoreErr)
+		}
+
+		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", id)
+		return fmt.Errorf("failed to publish delete event, activity rolled back: %w", err)
+	}
+
+	log.Infof("Activity %s deleted and event published successfully", id)
 	return nil
 }
 

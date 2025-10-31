@@ -76,6 +76,46 @@ func (r *MongoActivitiesRepository) List(ctx context.Context) ([]dto.Activity, e
 	return dtoActivities, nil
 }
 
+// GetMany obtiene multiples activities por IDs (ignora IDs no encontrados)
+func (r *MongoActivitiesRepository) GetMany(ctx context.Context, ids []string) ([]dto.Activity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Convert string IDs to ObjectIDs, skip invalid ones
+	objectIDs := []primitive.ObjectID{}
+	for _, id := range ids {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err == nil {
+			objectIDs = append(objectIDs, objID)
+		}
+	}
+
+	if len(objectIDs) == 0 {
+		return []dto.Activity{}, nil
+	}
+
+	// Query: find all documents where _id is in the list
+	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
+	cur, err := r.col.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var daoActivities []dao.ActivityDAO
+	if err := cur.All(ctx, &daoActivities); err != nil {
+		return nil, err
+	}
+
+	// Convert to domain DTOs
+	dtoActivities := make([]dto.Activity, len(daoActivities))
+	for i, daoAct := range daoActivities {
+		dtoActivities[i] = daoAct.ToDomain()
+	}
+
+	return dtoActivities, nil
+}
+
 // Create inserta un nuevo activity en DB
 func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	activityDAO := dao.FromDomainDAO(activity) // Convertir a modelo DAO

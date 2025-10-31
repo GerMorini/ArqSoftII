@@ -14,6 +14,7 @@ import (
 // ActivitiesService define la lógica de negocio para Activities
 type ActivitiesService interface {
 	List(ctx context.Context) ([]dto.Activity, error)
+	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
 	Create(ctx context.Context, actividad dto.ActivityAdministration) (dto.ActivityAdministration, error)
 	GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error)
 	Update(ctx context.Context, id string, actividad dto.ActivityAdministration) (dto.ActivityAdministration, error)
@@ -93,6 +94,82 @@ func (c *ActivitiesController) GetActivities(ctx *gin.Context) {
 
 	log.Infof("actividades obtenidas exitosamente")
 	ctx.JSON(http.StatusOK, gin.H{"activities": activities, "count": len(activities)})
+}
+
+// GetManyActivities maneja GET /activities/many?ids=id1,id2,id3
+func (c *ActivitiesController) GetManyActivities(ctx *gin.Context) {
+	idsParam := ctx.Query("ids")
+	if idsParam == "" {
+		log.Warnf("peticion sin parametro ids")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ids query parameter is required"})
+		return
+	}
+
+	// Parse comma-separated IDs
+	ids := []string{}
+	for _, id := range splitAndTrim(idsParam, ",") {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+
+	if len(ids) == 0 {
+		log.Warnf("peticion con parametro ids vacio")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "at least one id is required"})
+		return
+	}
+
+	activities, err := c.service.GetMany(ctx.Request.Context(), ids)
+	if err != nil {
+		log.Errorf("error al obtener actividades: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch activities", "details": err.Error()})
+		return
+	}
+
+	log.Infof("actividades obtenidas exitosamente, solicitadas: %d, encontradas: %d", len(ids), len(activities))
+	ctx.JSON(http.StatusOK, gin.H{"activities": activities, "count": len(activities)})
+}
+
+// Helper function to split and trim strings
+func splitAndTrim(s string, sep string) []string {
+	var result []string
+	for _, item := range splitString(s, sep) {
+		trimmed := trimString(item)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func splitString(s string, sep string) []string {
+	if s == "" {
+		return []string{}
+	}
+	var result []string
+	current := ""
+	for _, char := range s {
+		if string(char) == sep {
+			result = append(result, current)
+			current = ""
+		} else {
+			current += string(char)
+		}
+	}
+	result = append(result, current)
+	return result
+}
+
+func trimString(s string) string {
+	start := 0
+	end := len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
 }
 
 // CreateActivity maneja POST /activities

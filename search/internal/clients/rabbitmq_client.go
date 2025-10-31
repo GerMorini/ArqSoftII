@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"search/internal/services"
 	"time"
 
@@ -24,19 +24,47 @@ type RabbitMQClient struct {
 }
 
 func NewRabbitMQClient(user, password, queueName, host, port string) *RabbitMQClient {
-	connStr := fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port) // 👈 %s
-	connection, err := amqp091.Dial(connStr)
-	if err != nil {
-		log.Fatalf("failed to connect to RabbitMQ: %v", err) // 👈 %v, no %w
+	connStr := fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port)
+
+	var connection *amqp091.Connection
+	var err error
+
+	// Retry connection up to 10 times with exponential backoff
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		connection, err = amqp091.Dial(connStr)
+		if err == nil {
+			break
+		}
+
+		waitTime := time.Duration(i+1) * time.Second
+		log.Warnf("Failed to connect to RabbitMQ (attempt %d/%d): %v. Retrying in %v...", i+1, maxRetries, err, waitTime)
+		time.Sleep(waitTime)
 	}
+
+	if err != nil {
+		log.Fatalf("failed to connect to RabbitMQ after %d attempts: %v", maxRetries, err)
+	}
+
 	channel, err := connection.Channel()
 	if err != nil {
 		log.Fatalf("failed to open a channel: %v", err)
 	}
-	queue, err := channel.QueueDeclare(queueName, false, false, false, false, nil)
+
+	// Declare queue with same settings as activities-api (durable: true)
+	queue, err := channel.QueueDeclare(
+		queueName, // name
+		true,      // durable - survives broker restart
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
+	)
 	if err != nil {
 		log.Fatalf("failed to declare a queue: %v", err)
 	}
+
+	log.Infof("Successfully connected to RabbitMQ at %s:%s", host, port)
 	return &RabbitMQClient{connection: connection, channel: channel, queue: &queue}
 }
 

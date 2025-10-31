@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ActivityFormModal from '../components/ActivityFormModal';
 import ActivityCard from '../components/ActivityCard';
 import ActivityCardExpanded from '../components/ActivityCardExpanded';
-import FilterBar from '../components/FilterBar';
+import SearchBar from '../components/SearchBar';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AlertDialog from '../components/AlertDialog';
 import "../styles/Actividades.css";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useActividades } from '../hooks/useActividades';
 import useCurrentUser from '../hooks/useCurrentUser';
 import logger from '../utils/logger';
+import searchService from '../services/searchService';
 
 const Actividades = () => {
     const navigate = useNavigate();
@@ -35,6 +36,8 @@ const Actividades = () => {
     const [actividadADesincribir, setActividadADesincribir] = useState(null);
     const [actividadAInscribir, setActividadAInscribir] = useState(null);
     const [alertDialog, setAlertDialog] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState(null);
     const [filtros, setFiltros] = useState({
         busqueda: "",
         descripcion: "",
@@ -45,16 +48,13 @@ const Actividades = () => {
     const ITEMS_POR_PAGINA = 9;
 
     useEffect(() => {
-        fetchActividades();
+        // Initial load with empty search (shows all)
+        handleSearch();
         // Solo cargar inscripciones si el usuario está loggeado y NO es admin
         if (isLoggedIn && !isAdmin && idUsuario) {
             fetchInscripciones(idUsuario);
         }
     }, []);
-
-    useEffect(() => {
-        filtrarActividades();
-    }, [filtros, actividades, inscripciones]);
 
     const handleFiltroChange = (e) => {
         const { name, value, checked, type } = e.target;
@@ -73,42 +73,54 @@ const Actividades = () => {
             soloInscripto: false
         });
         setPaginaActual(1);
+        // Search again with empty filters
+        performSearch({
+            busqueda: "",
+            descripcion: "",
+            dia: "",
+            soloInscripto: false
+        });
     };
 
-    const filtrarActividades = () => {
-        let actividadesFiltradas = [...actividades];
+    const handleSearch = () => {
+        performSearch(filtros);
+    };
 
-        // Filtrar por búsqueda (solo título)
-        if (filtros.busqueda) {
-            const busquedaLower = filtros.busqueda.toLowerCase();
-            actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                actividad.titulo.toLowerCase().includes(busquedaLower)
-            );
+    const performSearch = async (currentFiltros) => {
+        setIsSearching(true);
+        setSearchError(null);
+
+        try {
+            // Build search filters
+            const searchFilters = {};
+            if (currentFiltros.busqueda) searchFilters.titulo = currentFiltros.busqueda;
+            if (currentFiltros.descripcion) searchFilters.descripcion = currentFiltros.descripcion;
+            if (currentFiltros.dia) searchFilters.dia = currentFiltros.dia;
+
+            logger.info('Searching with filters:', searchFilters);
+
+            // Call Search API
+            const response = await searchService.searchActivities(searchFilters);
+            let results = response.results || [];
+
+            logger.info('Search results:', results);
+
+            // Apply client-side filter for "soloInscripto"
+            if (currentFiltros.soloInscripto && inscripciones.length > 0) {
+                results = results.filter(actividad =>
+                    inscripciones.includes(actividad.id_actividad)
+                );
+            }
+
+            setActividadesFiltradas(results);
+            setPaginaActual(1);
+        } catch (error) {
+            logger.error('Error searching activities:', error);
+            setSearchError('Error al buscar actividades. Por favor, intenta nuevamente.');
+            setActividadesFiltradas([]);
+        } finally {
+            setIsSearching(false);
         }
-
-        // Filtrar por descripción
-        if (filtros.descripcion) {
-            const descLower = filtros.descripcion.toLowerCase();
-            actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                actividad.descripcion.toLowerCase().includes(descLower)
-            );
-        }
-
-        // Filtrar por día
-        if (filtros.dia) {
-            actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                actividad.dia.toLowerCase() === filtros.dia.toLowerCase()
-            );
-        }
-
-        // Filtrar solo inscripto
-        if (filtros.soloInscripto) {
-            actividadesFiltradas = actividadesFiltradas.filter(actividad =>
-                inscripciones.includes(actividad.id_actividad)
-            );
-        }
-
-        setActividadesFiltradas(actividadesFiltradas);
     };
 
     // Paginación
@@ -141,7 +153,8 @@ const Actividades = () => {
                 message: '¡Te has inscripto a la actividad!',
                 type: 'success'
             });
-            fetchActividades();
+            // Refresh search results
+            handleSearch();
         } catch (error) {
             logger.error('handleConfirmEnroll error', error);
             setAlertDialog({
@@ -166,7 +179,8 @@ const Actividades = () => {
                 message: 'Te has desincripto de la actividad',
                 type: 'success'
             });
-            fetchActividades();
+            // Refresh search results
+            handleSearch();
         } catch (error) {
             logger.error("handleConfirmUnenroll error", error);
             setAlertDialog({
@@ -201,7 +215,8 @@ const Actividades = () => {
             message: 'La actividad se ha actualizado exitosamente',
             type: 'success'
         });
-        fetchActividades();
+        // Refresh search results
+        handleSearch();
     };
 
     const handleEliminar = (actividad) => {
@@ -222,7 +237,8 @@ const Actividades = () => {
                 type: 'success'
             });
             setActividadAEliminar(null);
-            fetchActividades();
+            // Refresh search results
+            handleSearch();
         } catch (error) {
             logger.error("handleConfirmDelete error", error);
             setAlertDialog({
@@ -240,15 +256,34 @@ const Actividades = () => {
 
     return (
         <div className="actividades-container">
-            <FilterBar
+            <SearchBar
                 filtros={filtros}
                 onFiltroChange={handleFiltroChange}
                 onLimpiar={handleLimpiarFiltros}
+                onSearch={handleSearch}
                 mostrarToggle={isLoggedIn && !isAdmin}
                 soloInscriptoDisabled={false}
+                isSearching={isSearching}
             />
 
-            {actividadesFiltradas.length === 0 ? (
+            {searchError && (
+                <div className="mensaje-error" style={{
+                    padding: '1rem',
+                    backgroundColor: '#ffebee',
+                    color: '#c62828',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    textAlign: 'center'
+                }}>
+                    {searchError}
+                </div>
+            )}
+
+            {isSearching ? (
+                <div className="mensaje-no-actividades">
+                    Buscando actividades...
+                </div>
+            ) : actividadesFiltradas.length === 0 ? (
                 <div className="mensaje-no-actividades">
                     No se encontraron actividades.
                 </div>

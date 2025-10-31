@@ -2,7 +2,10 @@ module activities
 
 go 1.24.1
 
-require github.com/gin-gonic/gin v1.11.0
+require (
+	github.com/gin-gonic/gin v1.11.0
+	github.com/rabbitmq/amqp091-go v1.10.0
+)
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect

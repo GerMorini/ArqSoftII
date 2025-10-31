@@ -64,25 +64,27 @@ func (r *SolrActivitysRepository) Delete(ctx context.Context, id string) error {
 func buildQuery(filters dto.SearchFilters) string {
 	var parts []string
 
-	// Si no hay filtros, devolvemos todo
-	if filters.ID == "" || filters.Titulo == "" && filters.Descripcion == "" && filters.DiaSemana == "" {
-		return "*:*"
-	}
-
+	// Si hay ID, retornar búsqueda exacta por ID
 	if filters.ID != "" {
-		parts = append(parts, fmt.Sprintf("id:%s", filters.ID))
+		return fmt.Sprintf("id:%s", filters.ID)
 	}
 
+	// Construir query con filtros disponibles
 	if filters.Titulo != "" {
-		parts = append(parts, fmt.Sprintf("name:*%s*", filters.Titulo))
+		parts = append(parts, fmt.Sprintf("titulo:*%s*", filters.Titulo))
 	}
 
 	if filters.Descripcion != "" {
-		parts = append(parts, fmt.Sprintf("name:*%s*", filters.Descripcion))
+		parts = append(parts, fmt.Sprintf("descripcion:*%s*", filters.Descripcion))
 	}
 
 	if filters.DiaSemana != "" {
-		parts = append(parts, fmt.Sprintf("name:*%s*", filters.DiaSemana))
+		parts = append(parts, fmt.Sprintf("dia:*%s*", filters.DiaSemana))
+	}
+
+	// Si no hay ningún filtro, devolver todos los documentos
+	if len(parts) == 0 {
+		return "*:*"
 	}
 
 	return strings.Join(parts, " AND ")

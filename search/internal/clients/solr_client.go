@@ -18,10 +18,16 @@ type SolrClient struct {
 }
 
 type SolrDocument struct {
-	ID          string `json:"id"`
-	Titulo      string `json:"titulo"`
-	Descripcion string `json:"descripcion"`
-	DiaSemana   string `json:"dia"`
+	ID                 string `json:"id"`
+	Titulo             string `json:"titulo"`
+	Descripcion        string `json:"descripcion"`
+	Profesor           string `json:"profesor"`
+	DiaSemana          string `json:"dia"`
+	HoraInicio         string `json:"hora_inicio"`
+	HoraFin            string `json:"hora_fin"`
+	CapacidadMax       int    `json:"cupo"`
+	LugaresDisponibles int    `json:"lugares_disponibles"`
+	FotoUrl            string `json:"foto_url"`
 }
 
 type SolrResponse struct {
@@ -54,10 +60,16 @@ func NewSolrClient(host, port, core string) *SolrClient {
 
 func (s *SolrClient) Index(ctx context.Context, activity dto.Activity) error {
 	doc := SolrDocument{
-		ID:          activity.ID,
-		Titulo:      activity.Titulo,
-		Descripcion: activity.Descripcion,
-		DiaSemana:   activity.DiaSemana,
+		ID:                 activity.ID,
+		Titulo:             activity.Titulo,
+		Descripcion:        activity.Descripcion,
+		Profesor:           activity.Profesor,
+		DiaSemana:          activity.DiaSemana,
+		HoraInicio:         activity.HoraInicio,
+		HoraFin:            activity.HoraFin,
+		CapacidadMax:       activity.CapacidadMax,
+		LugaresDisponibles: activity.LugaresDisponibles,
+		FotoUrl:            activity.FotoUrl,
 	}
 
 	data, err := json.Marshal([]SolrDocument{doc})
@@ -136,10 +148,16 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	activitys := make([]dto.Activity, len(solrResp.Response.Docs))
 	for i, doc := range solrResp.Response.Docs {
 		activitys[i] = dto.Activity{
-			ID:          doc.ID,
-			Titulo:      doc.Titulo,
-			Descripcion: doc.Descripcion,
-			DiaSemana:   doc.DiaSemana,
+			ID:                 doc.ID,
+			Titulo:             doc.Titulo,
+			Descripcion:        doc.Descripcion,
+			Profesor:           doc.Profesor,
+			DiaSemana:          doc.DiaSemana,
+			HoraInicio:         doc.HoraInicio,
+			HoraFin:            doc.HoraFin,
+			CapacidadMax:       doc.CapacidadMax,
+			LugaresDisponibles: doc.LugaresDisponibles,
+			FotoUrl:            doc.FotoUrl,
 		}
 	}
 
@@ -179,6 +197,38 @@ func (s *SolrClient) Delete(ctx context.Context, id string) error {
 
 	if updateResp.ResponseHeader.Status != 0 {
 		return fmt.Errorf("solr delete failed with status %d", updateResp.ResponseHeader.Status)
+	}
+
+	return nil
+}
+
+func (s *SolrClient) Commit(ctx context.Context) error {
+	url := fmt.Sprintf("%s/update?commit=true", s.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(""))
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("solr returned status %d", resp.StatusCode)
+	}
+
+	var updateResp SolrUpdateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&updateResp); err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if updateResp.ResponseHeader.Status != 0 {
+		return fmt.Errorf("solr commit failed with status %d", updateResp.ResponseHeader.Status)
 	}
 
 	return nil

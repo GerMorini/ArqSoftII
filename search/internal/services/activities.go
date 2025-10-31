@@ -26,19 +26,26 @@ type ActivitiesConsumer interface {
 	Consume(ctx context.Context, handler func(ctx context.Context, message ActivityEvent) error) error
 }
 
-type ActiviesServiceImpl struct {
-	cache     ActivitiesRepository
-	search    ActivitiesRepository
-	publisher ActivitiesPublisher
-	consumer  ActivitiesConsumer
+type ActivitiesAPIClient interface {
+	GetActivityByID(ctx context.Context, id string) (*dto.Activity, error)
+	GetActivitiesByIDs(ctx context.Context, ids []string) ([]dto.Activity, error)
 }
 
-func NewActivitysService(cache ActivitiesRepository, search ActivitiesRepository, publisher ActivitiesPublisher, consumer ActivitiesConsumer) ActiviesServiceImpl {
+type ActiviesServiceImpl struct {
+	cache          ActivitiesRepository
+	search         ActivitiesRepository
+	publisher      ActivitiesPublisher
+	consumer       ActivitiesConsumer
+	activitiesAPI  ActivitiesAPIClient
+}
+
+func NewActivitysService(cache ActivitiesRepository, search ActivitiesRepository, publisher ActivitiesPublisher, consumer ActivitiesConsumer, activitiesAPI ActivitiesAPIClient) ActiviesServiceImpl {
 	return ActiviesServiceImpl{
-		cache:     cache,
-		search:    search,
-		publisher: publisher,
-		consumer:  consumer,
+		cache:         cache,
+		search:        search,
+		publisher:     publisher,
+		consumer:      consumer,
+		activitiesAPI: activitiesAPI,
 	}
 }
 
@@ -48,70 +55,70 @@ func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilter
 }
 
 func (s *ActiviesServiceImpl) Create(ctx context.Context, activity dto.Activity) (dto.Activity, error) {
-	if err := s.publisher.Publish(ctx, "create", created.ID); err != nil {
+	if err := s.publisher.Publish(ctx, "create", activity.ID); err != nil {
 		return dto.Activity{}, fmt.Errorf("error publishing activity creation: %w", err)
 	}
 
-	_, err = s.cache.Create(ctx, created)
+	_, err := s.cache.Create(ctx, activity)
 	if err != nil {
 		return dto.Activity{}, fmt.Errorf("error creating activity in cache: %w", err)
 	}
 
-	return created, nil
+	return activity, nil
 }
 
 func (s *ActiviesServiceImpl) GetByID(ctx context.Context, id string) (dto.Activity, error) {
+	// Try cache first
 	activity, err := s.cache.GetByID(ctx, id)
 	if err != nil {
-		activity, err := s.repository.GetByID(ctx, id)
+		// Cache miss - fetch from Activities API
+		activityPtr, err := s.activitiesAPI.GetActivityByID(ctx, id)
 		if err != nil {
-			return dto.Activity{}, fmt.Errorf("error getting activity from repository: %w", err)
+			return dto.Activity{}, fmt.Errorf("error getting activity from Activities API: %w", err)
 		}
 
-		_, err = s.cache.Create(ctx, activity)
+		// Cache the result
+		_, err = s.cache.Create(ctx, *activityPtr)
 		if err != nil {
-			return dto.Activity{}, fmt.Errorf("error creating activity in cache: %w", err)
+			slog.Warn("error caching activity", slog.String("activity_id", id), slog.String("error", err.Error()))
 		}
 
-		return activity, nil
+		return *activityPtr, nil
 	}
 	return activity, nil
 }
 
 func (s *ActiviesServiceImpl) Update(ctx context.Context, id string, activity dto.Activity) (dto.Activity, error) {
-
+	// This method is for testing only - real updates come via RabbitMQ
 	if err := s.validateActivity(activity); err != nil {
 		return dto.Activity{}, fmt.Errorf("invalid activity: %w", err)
 	}
 
-	updated, err := s.repository.Update(ctx, id, activity)
+	// Update in search index
+	updated, err := s.search.Update(ctx, id, activity)
 	if err != nil {
-		return dto.Activity{}, fmt.Errorf("error updating activity in repository: %w", err)
+		return dto.Activity{}, fmt.Errorf("error updating activity in search: %w", err)
 	}
 
-	if err := s.publisher.Publish(ctx, "update", updated.ID); err != nil {
-		return dto.Activity{}, fmt.Errorf("error publishing activity update: %w", err)
-	}
-
+	// Update cache
 	if _, err := s.cache.Update(ctx, id, updated); err != nil {
-		return dto.Activity{}, fmt.Errorf("error updating activity in cache: %w", err)
+		slog.Warn("error updating activity in cache", slog.String("activity_id", id), slog.String("error", err.Error()))
 	}
 
 	return updated, nil
 }
 
 func (s *ActiviesServiceImpl) Delete(ctx context.Context, id string) error {
+	// This method is for testing only - real deletes come via RabbitMQ
 
-	if err := s.repository.Delete(ctx, id); err != nil {
-		return fmt.Errorf("error deleting activity from repository: %w", err)
+	// Delete from search index
+	if err := s.search.Delete(ctx, id); err != nil {
+		return fmt.Errorf("error deleting activity from search: %w", err)
 	}
 
-	if err := s.publisher.Publish(ctx, "delete", id); err != nil {
-		return fmt.Errorf("error publishing activity deletion: %w", err)
-	}
-
+	// Delete from cache
 	if err := s.cache.Delete(ctx, id); err != nil {
-		return fmt.Errorf("error deleting activity from cache: %w", err)
+		slog.Warn("error deleting activity from cache", slog.String("activity_id", id), slog.String("error", err.Error()))
 	}
 
 	return nil
@@ -157,16 +164,26 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 	case "create":
 		slog.Info("✅ Activity created", slog.String("activity_id", message.ActivityID))
 
-		activity, err := s.repository.GetByID(ctx, message.ActivityID)
+		// Fetch activity from Activities API
+		activityPtr, err := s.activitiesAPI.GetActivityByID(ctx, message.ActivityID)
 		if err != nil {
-			slog.Error("❌ Error getting activity for indexing",
+			slog.Error("❌ Error getting activity from Activities API for indexing",
 				slog.String("activity_id", message.ActivityID),
 				slog.String("error", err.Error()))
 			return fmt.Errorf("error getting activity for indexing: %w", err)
 		}
 
-		if _, err := s.search.Create(ctx, activity); err != nil {
+		// Index in SolR
+		if _, err := s.search.Create(ctx, *activityPtr); err != nil {
 			slog.Error("❌ Error indexing activity in search",
+				slog.String("activity_id", message.ActivityID),
+				slog.String("error", err.Error()))
+			return fmt.Errorf("error indexing activity: %w", err)
+		}
+
+		// Cache activity
+		if _, err := s.cache.Create(ctx, *activityPtr); err != nil {
+			slog.Warn("⚠️ Error caching activity",
 				slog.String("activity_id", message.ActivityID),
 				slog.String("error", err.Error()))
 		}
@@ -175,17 +192,27 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 	case "update":
 		slog.Info("✏️ Activity updated", slog.String("activity_id", message.ActivityID))
 
-		activity, err := s.repository.GetByID(ctx, message.ActivityID)
+		// Fetch updated activity from Activities API
+		activityPtr, err := s.activitiesAPI.GetActivityByID(ctx, message.ActivityID)
 		if err != nil {
-			slog.Error("❌ Error getting activity for reindexing",
+			slog.Error("❌ Error getting activity from Activities API for reindexing",
 				slog.String("activity_id", message.ActivityID),
 				slog.String("error", err.Error()))
-			return fmt.Errorf("error getting activity for indexing: %w", err)
+			return fmt.Errorf("error getting activity for reindexing: %w", err)
 		}
 
-		_, err = s.search.Update(ctx, message.ActivityID, activity)
+		// Reindex in SolR
+		_, err = s.search.Update(ctx, message.ActivityID, *activityPtr)
 		if err != nil {
 			slog.Error("❌ Error reindexing activity in search",
+				slog.String("activity_id", message.ActivityID),
+				slog.String("error", err.Error()))
+			return fmt.Errorf("error reindexing activity: %w", err)
+		}
+
+		// Update cache
+		if _, err := s.cache.Update(ctx, message.ActivityID, *activityPtr); err != nil {
+			slog.Warn("⚠️ Error updating activity in cache",
 				slog.String("activity_id", message.ActivityID),
 				slog.String("error", err.Error()))
 		}
@@ -193,14 +220,24 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 		slog.Info("🔍 Activity reindexed in search engine", slog.String("activity_id", message.ActivityID))
 	case "delete":
 		slog.Info("🗑️ Activity deleted", slog.String("activity_id", message.ActivityID))
-		err := s.search.Delete(ctx, message.ActivityID)
 
+		// Delete from SolR
+		err := s.search.Delete(ctx, message.ActivityID)
 		if err != nil {
 			slog.Error("❌ Error deleting activity in search",
 				slog.String("activity_id", message.ActivityID),
 				slog.String("error", err.Error()))
 			return fmt.Errorf("error deleting activity in search: %w", err)
 		}
+
+		// Delete from cache
+		if err := s.cache.Delete(ctx, message.ActivityID); err != nil {
+			slog.Warn("⚠️ Error deleting activity from cache",
+				slog.String("activity_id", message.ActivityID),
+				slog.String("error", err.Error()))
+		}
+
+		slog.Info("🗑️ Activity deleted from search engine", slog.String("activity_id", message.ActivityID))
 	default:
 		slog.Info("⚠️ Unknown action", slog.String("action", message.Action))
 	}

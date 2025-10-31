@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"search/internal/clients"
 	"search/internal/config"
@@ -39,7 +39,9 @@ func main() {
 		cfg.RabbitMQ.Port,
 	)
 
-	activityService := services.NewActivitysService(activiesMemcachedRepo, activitysSolrRepo, activiesQueue, activiesQueue)
+	activitiesAPIClient := clients.NewActivitiesClient(cfg.ActivitiesAPIURL)
+
+	activityService := services.NewActivitysService(activiesMemcachedRepo, activitysSolrRepo, activiesQueue, activiesQueue, activitiesAPIClient)
 	go activityService.InitConsumer(ctx)
 
 	activityController := controllers.NewActivitiesController(&activityService)

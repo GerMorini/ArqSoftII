@@ -13,6 +13,7 @@ type Config struct {
 	Memcached MemcachedConfig
 	RabbitMQ  RabbitMQConfig
 	Solr      SolrConfig
+	ActivitiesAPIURL string
 }
 
 type MemcachedConfig struct {
@@ -72,6 +73,7 @@ func Load() Config {
 			Port: getEnv("SOLR_PORT", "8983"),
 			Core: getEnv("SOLR_CORE", "demo"),
 		},
+		ActivitiesAPIURL: getEnv("ACTIVITIES_API_URL", "http://activities-api:8080"),
 	}
 
 	log.Infoln("========== CONFIGURACIÓN ==========")
@@ -87,6 +89,7 @@ func Load() Config {
 	log.Infoln("SOLR_HOST", cfg.Solr.Host)
 	log.Infoln("SOLR_PORT", cfg.Solr.Port)
 	log.Infoln("SOLR_CORE", cfg.Solr.Core)
+	log.Infoln("ACTIVITIES_API_URL:", cfg.ActivitiesAPIURL)
 	log.Infoln("===================================")
 
 	return cfg

@@ -1,13 +1,14 @@
 package main
 
 import (
+	"activities/internal/clients"
 	"activities/internal/config"
 	"activities/internal/controllers"
 	"activities/internal/middleware"
 	"activities/internal/repository"
 	"activities/internal/services"
 	"context"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -28,8 +29,21 @@ func main() {
 	// Capa de datos: maneja operaciones DB
 	activitiesMongoRepo := repository.NewMongoActivitiesRepository(ctx, cfg.Mongo.URI, cfg.Mongo.DB, "activities")
 
+	// RabbitMQ client: para publicar eventos de actividades
+	rabbitClient, err := clients.NewRabbitMQClient(
+		cfg.RabbitMQ.Host,
+		cfg.RabbitMQ.Port,
+		cfg.RabbitMQ.User,
+		cfg.RabbitMQ.Pass,
+		cfg.RabbitMQ.QueueName,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize RabbitMQ client: %v", err)
+	}
+	defer rabbitClient.Close()
+
 	// Capa de lógica de negocio: validaciones, transformaciones
-	activityService := services.NewActivitiesService(activitiesMongoRepo)
+	activityService := services.NewActivitiesService(activitiesMongoRepo, rabbitClient)
 
 	// Capa de controladores: maneja HTTP requests/responses
 	activityController := controllers.NewActivitiesController(activityService)
@@ -51,6 +65,9 @@ func main() {
 	// 📚 Rutas de Activities API
 	// GET /activities - listar todos los activities (✅ implementado)
 	router.GET("/activities", activityController.GetActivities)
+
+	// GET /activities/many?ids=id1,id2,id3 - obtener multiples activities por IDs (público)
+	router.GET("/activities/many", activityController.GetManyActivities)
 
 	// POST /activities - crear nuevo activity (protegido)
 	router.POST("/activities", middleware.AuthMiddleware(cfg.JwtSecret), activityController.CreateActivity)
