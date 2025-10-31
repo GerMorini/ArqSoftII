@@ -1,12 +1,12 @@
 package clients
 
 import (
-	"clase05-solr/internal/domain"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"search/internal/dto"
 	"strings"
 	"time"
 )
@@ -18,11 +18,10 @@ type SolrClient struct {
 }
 
 type SolrDocument struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Price     float64   `json:"price"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string `json:"id"`
+	Titulo      string `json:"titulo"`
+	Descripcion string `json:"descripcion"`
+	DiaSemana   string `json:"dia"`
 }
 
 type SolrResponse struct {
@@ -53,13 +52,12 @@ func NewSolrClient(host, port, core string) *SolrClient {
 	}
 }
 
-func (s *SolrClient) Index(ctx context.Context, item domain.Item) error {
+func (s *SolrClient) Index(ctx context.Context, activity dto.Activity) error {
 	doc := SolrDocument{
-		ID:        item.ID,
-		Name:      item.Name,
-		Price:     item.Price,
-		CreatedAt: item.CreatedAt,
-		UpdatedAt: item.UpdatedAt,
+		ID:          activity.ID,
+		Titulo:      activity.Titulo,
+		Descripcion: activity.Descripcion,
+		DiaSemana:   activity.DiaSemana,
 	}
 
 	data, err := json.Marshal([]SolrDocument{doc})
@@ -97,7 +95,7 @@ func (s *SolrClient) Index(ctx context.Context, item domain.Item) error {
 	return nil
 }
 
-func (s *SolrClient) Search(ctx context.Context, query string, page int, count int) (domain.PaginatedResponse, error) {
+func (s *SolrClient) Search(ctx context.Context, query string, page int, count int) (dto.PaginatedResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -117,40 +115,39 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	url := fmt.Sprintf("%s/select?%s", s.baseURL, params.Encode())
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return domain.PaginatedResponse{}, fmt.Errorf("error creating request: %w", err)
+		return dto.PaginatedResponse{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return domain.PaginatedResponse{}, fmt.Errorf("error executing request: %w", err)
+		return dto.PaginatedResponse{}, fmt.Errorf("error executing request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return domain.PaginatedResponse{}, fmt.Errorf("solr returned status %d", resp.StatusCode)
+		return dto.PaginatedResponse{}, fmt.Errorf("solr returned status %d", resp.StatusCode)
 	}
 
 	var solrResp SolrResponse
 	if err := json.NewDecoder(resp.Body).Decode(&solrResp); err != nil {
-		return domain.PaginatedResponse{}, fmt.Errorf("error decoding response: %w", err)
+		return dto.PaginatedResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	items := make([]domain.Item, len(solrResp.Response.Docs))
+	activitys := make([]dto.Activity, len(solrResp.Response.Docs))
 	for i, doc := range solrResp.Response.Docs {
-		items[i] = domain.Item{
-			ID:        doc.ID,
-			Name:      doc.Name,
-			Price:     doc.Price,
-			CreatedAt: doc.CreatedAt,
-			UpdatedAt: doc.UpdatedAt,
+		activitys[i] = dto.Activity{
+			ID:          doc.ID,
+			Titulo:      doc.Titulo,
+			Descripcion: doc.Descripcion,
+			DiaSemana:   doc.DiaSemana,
 		}
 	}
 
-	return domain.PaginatedResponse{
+	return dto.PaginatedResponse{
 		Page:    page,
-		Count:   len(items),
+		Count:   len(activitys),
 		Total:   solrResp.Response.NumFound, // total de coincidencias
-		Results: items,
+		Results: activitys,
 	}, nil
 }
 

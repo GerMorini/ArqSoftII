@@ -1,11 +1,11 @@
 package clients
 
 import (
-	"clase05-solr/internal/services"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"search/internal/services"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,10 +40,10 @@ func NewRabbitMQClient(user, password, queueName, host, port string) *RabbitMQCl
 	return &RabbitMQClient{connection: connection, channel: channel, queue: &queue}
 }
 
-func (r *RabbitMQClient) Publish(ctx context.Context, action string, itemID string) error {
+func (r *RabbitMQClient) Publish(ctx context.Context, action string, activityID string) error {
 	message := map[string]interface{}{
-		"action":  action,
-		"item_id": itemID,
+		"action":      action,
+		"activity_id": activityID,
 	}
 
 	bytes, err := json.Marshal(message)
@@ -57,7 +57,7 @@ func (r *RabbitMQClient) Publish(ctx context.Context, action string, itemID stri
 		DeliveryMode:    amqp091.Transient,
 		MessageId:       uuid.New().String(),
 		Timestamp:       time.Now().UTC(),
-		AppId:           "items-api",
+		AppId:           "activitys-api",
 		Body:            bytes,
 	}); err != nil {
 		return fmt.Errorf("error publishing message to RabbitMQ: %w", err)
@@ -65,7 +65,7 @@ func (r *RabbitMQClient) Publish(ctx context.Context, action string, itemID stri
 	return nil
 }
 
-func (r *RabbitMQClient) Consume(ctx context.Context, handler func(context.Context, services.ItemEvent) error) error {
+func (r *RabbitMQClient) Consume(ctx context.Context, handler func(context.Context, services.ActivityEvent) error) error {
 	// Configurar el consumer
 	msgs, err := r.channel.Consume(
 		r.queue.Name, // queue
@@ -91,7 +91,7 @@ func (r *RabbitMQClient) Consume(ctx context.Context, handler func(context.Conte
 
 		case msg := <-msgs:
 			// Deserializar mensaje
-			var event services.ItemEvent
+			var event services.ActivityEvent
 			if err := json.Unmarshal(msg.Body, &event); err != nil {
 				log.Printf("❌ Error unmarshalling message: %v", err)
 				continue

@@ -1,24 +1,18 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
 	Port      string
-	Mongo     MongoConfig
 	Memcached MemcachedConfig
 	RabbitMQ  RabbitMQConfig
 	Solr      SolrConfig
-}
-
-type MongoConfig struct {
-	URI string
-	DB  string
 }
 
 type MemcachedConfig struct {
@@ -42,7 +36,14 @@ type SolrConfig struct {
 }
 
 func Load() Config {
-	// Load .env file
+	log.SetOutput(os.Stderr)
+	// log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "02/01/2006-15:04:05.000",
+	})
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found or error loading .env file")
 	}
@@ -54,10 +55,6 @@ func Load() Config {
 
 	cfg := Config{
 		Port: getEnv("PORT", "8080"),
-		Mongo: MongoConfig{
-			URI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
-			DB:  getEnv("MONGO_DB", "demo"),
-		},
 		Memcached: MemcachedConfig{
 			Host:       getEnv("MEMCACHED_HOST", "localhost"),
 			Port:       getEnv("MEMCACHED_PORT", "11211"),
@@ -77,22 +74,20 @@ func Load() Config {
 		},
 	}
 
-	log.Println("========== CONFIGURACIÓN ==========")
-	log.Println("PORT:", cfg.Port)
-	log.Println("MONGO_URI:", cfg.Mongo.URI)
-	log.Println("MONGO_DB:", cfg.Mongo.DB)
-	log.Println("MEMCACHED_HOST:", cfg.Memcached.Host)
-	log.Println("MEMCACHED_PORT:", cfg.Memcached.Port)
-	log.Println("MEMCACHED_TTL_SECONDS:", cfg.Memcached.TTLSeconds)
-	log.Println("RABBITMQ_USER:", cfg.RabbitMQ.Username)
-	log.Println("RABBITMQ_PASS:", cfg.RabbitMQ.Password)
-	log.Println("RABBITMQ_QUEUE_NAME:", cfg.RabbitMQ.QueueName)
-	log.Println("RABBITMQ_HOST:", cfg.RabbitMQ.Host)
-	log.Println("RABBITMQ_PORT:", cfg.RabbitMQ.Port)
-	log.Println("SOLR_HOST", cfg.Solr.Host)
-	log.Println("SOLR_PORT", cfg.Solr.Port)
-	log.Println("SOLR_CORE", cfg.Solr.Core)
-	log.Println("===================================")
+	log.Infoln("========== CONFIGURACIÓN ==========")
+	log.Infoln("PORT:", cfg.Port)
+	log.Infoln("MEMCACHED_HOST:", cfg.Memcached.Host)
+	log.Infoln("MEMCACHED_PORT:", cfg.Memcached.Port)
+	log.Infoln("MEMCACHED_TTL_SECONDS:", cfg.Memcached.TTLSeconds)
+	log.Infoln("RABBITMQ_USER:", cfg.RabbitMQ.Username)
+	log.Infoln("RABBITMQ_PASS:", cfg.RabbitMQ.Password)
+	log.Infoln("RABBITMQ_QUEUE_NAME:", cfg.RabbitMQ.QueueName)
+	log.Infoln("RABBITMQ_HOST:", cfg.RabbitMQ.Host)
+	log.Infoln("RABBITMQ_PORT:", cfg.RabbitMQ.Port)
+	log.Infoln("SOLR_HOST", cfg.Solr.Host)
+	log.Infoln("SOLR_PORT", cfg.Solr.Port)
+	log.Infoln("SOLR_CORE", cfg.Solr.Core)
+	log.Infoln("===================================")
 
 	return cfg
 }
