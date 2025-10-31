@@ -18,8 +18,11 @@ type RabbitMQClient struct {
 }
 
 type ActivityEvent struct {
-	Action     string `json:"action"`
-	ActivityID string `json:"activity_id"`
+	Action      string `json:"action"`
+	ID          string `json:"id"`
+	Nombre      string `json:"nombre"`
+	Descripcion string `json:"descripcion"`
+	Dia         string `json:"dia"`
 }
 
 // NewRabbitMQClient intenta conectar con reintentos exponenciales
@@ -60,8 +63,8 @@ func NewRabbitMQClient(host, port, user, pass, queueName string) (*RabbitMQClien
 }
 
 // Publish publica un evento de actividad
-func (r *RabbitMQClient) Publish(ctx context.Context, action, activityID string) error {
-	ev := ActivityEvent{Action: action, ActivityID: activityID}
+func (r *RabbitMQClient) Publish(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+	ev := ActivityEvent{Action: action, ID: id, Nombre: nombre, Descripcion: descripcion, Dia: dia}
 	b, err := json.Marshal(ev)
 	if err != nil {
 		return err
@@ -73,25 +76,6 @@ func (r *RabbitMQClient) Publish(ctx context.Context, action, activityID string)
 		Body:         b,
 		DeliveryMode: amqp.Persistent,
 	})
-}
-
-// Consume arranca la escucha y entrega los eventos al handler
-func (r *RabbitMQClient) Consume(ctx context.Context, handler func(ctx context.Context, action, activityID string) error) error {
-	msgs, err := r.channel.Consume(r.queueName, "", true, false, false, false, nil)
-	if err != nil {
-		return err
-	}
-	go func() {
-		for d := range msgs {
-			var ev ActivityEvent
-			if err := json.Unmarshal(d.Body, &ev); err != nil {
-				log.Warnf("invalid rabbit message: %v", err)
-				continue
-			}
-			_ = handler(ctx, ev.Action, ev.ActivityID)
-		}
-	}()
-	return nil
 }
 
 // Close cierra canal y conexión

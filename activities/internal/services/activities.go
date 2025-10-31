@@ -38,19 +38,19 @@ type ActivitiesService interface {
 
 // RabbitMQPublisher interface para publicar eventos
 type RabbitMQPublisher interface {
-	Publish(ctx context.Context, action string, activityID string) error
+	Publish(ctx context.Context, action string, id string, nombre string, descripcion string, dia string) error
 }
 
 // ActivitiesServiceImpl implementa ActivitiesService
 type ActivitiesServiceImpl struct {
-	repository     ActivitiesRepository
+	repository      ActivitiesRepository
 	rabbitPublisher RabbitMQPublisher
 }
 
 // NewActivitiesService crea una nueva instancia del service
 func NewActivitiesService(repo ActivitiesRepository, rabbit RabbitMQPublisher) *ActivitiesServiceImpl {
 	return &ActivitiesServiceImpl{
-		repository:     repo,
+		repository:      repo,
 		rabbitPublisher: rabbit,
 	}
 }
@@ -77,8 +77,8 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 		return dto.ActivityAdministration{}, fmt.Errorf("error creating activity in repository: %w", err)
 	}
 
-	// Step 2: Publish event to RabbitMQ
-	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID); err != nil {
+	// Step 2: Publish event to RabbitMQ (include activity data for search indexing)
+	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID, created.Nombre, created.Descripcion, created.DiaSemana); err != nil {
 		log.Errorf("Failed to publish create event for activity %s: %v", created.ID, err)
 
 		// Rollback: delete the created activity from MongoDB
@@ -146,7 +146,7 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 	}
 
 	// Step 2: Publish event to RabbitMQ
-	if err := s.rabbitPublisher.Publish(ctx, "update", id); err != nil {
+	if err := s.rabbitPublisher.Publish(ctx, "update", updated.ID, updated.Nombre, updated.Descripcion, updated.DiaSemana); err != nil {
 		log.Errorf("Failed to publish update event for activity %s: %v", id, err)
 
 		// Rollback: restore the original activity in MongoDB
@@ -177,7 +177,7 @@ func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 	}
 
 	// Step 2: Publish event to RabbitMQ
-	if err := s.rabbitPublisher.Publish(ctx, "delete", id); err != nil {
+	if err := s.rabbitPublisher.Publish(ctx, "delete", activityToDelete.ID, activityToDelete.Nombre, activityToDelete.Descripcion, activityToDelete.DiaSemana); err != nil {
 		log.Errorf("Failed to publish delete event for activity %s: %v", id, err)
 
 		// Rollback: restore the deleted activity in MongoDB
