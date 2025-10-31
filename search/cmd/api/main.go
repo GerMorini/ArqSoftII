@@ -42,7 +42,7 @@ func main() {
 		cfg.RabbitMQ.Port,
 	)
 
-	activityService := services.NewActivitiesService(activiesMemcachedRepo, activitiesSolrRepo, activiesQueue)
+	activityService := services.NewActivitiesService(activitiesLocalCacheRepo, activiesMemcachedRepo, activitiesSolrRepo, activiesQueue)
 	go activityService.InitConsumer(ctx)
 
 	activityController := controllers.NewActivitiesController(&activityService)
