@@ -8,9 +8,10 @@ import (
 	"activities/internal/repository"
 	"activities/internal/services"
 	"context"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,6 +48,32 @@ func main() {
 
 	// Capa de controladores: maneja HTTP requests/responses
 	activityController := controllers.NewActivitiesController(activityService)
+
+	// arrancar consumidor Rabbit -> Solr (index/ delete)
+	go func() {
+		if err := rabbitClient.Consume(ctx, func(ctx context.Context, action, activityID string) error {
+			switch action {
+			case "create", "update":
+				act, err := activityService.GetByID(ctx, activityID)
+				if err != nil {
+					log.Warnf("consumer: failed to fetch activity %s: %v", activityID, err)
+					return nil
+				}
+				if err := clients.IndexActivityToSolr(cfg.Solr.URL, cfg.Solr.Collection, act); err != nil {
+					log.Errorf("consumer: failed to index activity %s to solr: %v", activityID, err)
+				}
+			case "delete":
+				if err := clients.DeleteActivityFromSolr(cfg.Solr.URL, cfg.Solr.Collection, activityID); err != nil {
+					log.Errorf("consumer: failed to delete activity %s from solr: %v", activityID, err)
+				}
+			default:
+				log.Infof("consumer: unknown action %s", action)
+			}
+			return nil
+		}); err != nil {
+			log.Fatalf("failed to start rabbit consumer: %v", err)
+		}
+	}()
 
 	// Cache (ejercicio: ajustar TTL y agregar "índice" de claves)
 	// cache := cache.NewMemcached(memAddr)

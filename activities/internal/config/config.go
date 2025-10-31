@@ -11,6 +11,7 @@ type Config struct {
 	Mongo     MongoConfig
 	RabbitMQ  RabbitMQConfig
 	JwtSecret string
+	Solr      SolrConfig
 }
 
 type MongoConfig struct {
@@ -24,6 +25,11 @@ type RabbitMQConfig struct {
 	User      string
 	Pass      string
 	QueueName string
+}
+
+type SolrConfig struct {
+	URL        string
+	Collection string
 }
 
 func Load() Config {
@@ -53,6 +59,10 @@ func Load() Config {
 			Pass:      getEnv("RABBITMQ_PASS", "admin"),
 			QueueName: getEnv("RABBITMQ_QUEUE_NAME", "items"),
 		},
+		Solr: SolrConfig{
+			URL:        getEnv("SOLR_URL", "http://solr-search-api:8983/solr"),
+			Collection: getEnv("SOLR_COLLECTION", "activities"),
+		},
 		JwtSecret: secret,
 	}
 
@@ -63,6 +73,8 @@ func Load() Config {
 	log.Infoln("RABBITMQ_HOST:", cfg.RabbitMQ.Host)
 	log.Infoln("RABBITMQ_PORT:", cfg.RabbitMQ.Port)
 	log.Infoln("RABBITMQ_QUEUE:", cfg.RabbitMQ.QueueName)
+	log.Infoln("SOLR_URL:", cfg.Solr.URL)
+	log.Infoln("SOLR_COLLECTION:", cfg.Solr.Collection)
 	log.Infoln("JWT_SECRET:", cfg.JwtSecret)
 	log.Infoln("==================================")
 	return cfg
