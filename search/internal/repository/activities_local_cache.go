@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"search/internal/dto"
 	"time"
@@ -25,29 +26,20 @@ func (r ActivitiesLocalCacheRepository) List(ctx context.Context, filters dto.Se
 	return dto.PaginatedResponse{}, fmt.Errorf("list is not supported in memcached")
 }
 
-func (r ActivitiesLocalCacheRepository) Create(ctx context.Context, Activity dto.Activity) (dto.Activity, error) {
-	r.client.Set(Activity.ID, Activity, r.ttl)
-	return Activity, nil
+func (r ActivitiesLocalCacheRepository) Create(ctx context.Context, activity dto.Activity) (dto.Activity, error) {
+	r.client.Set(activity.ID, activity, r.ttl)
+	return activity, nil
 }
 
-func (r ActivitiesLocalCacheRepository) GetByID(ctx context.Context, id string) (dto.Activity, error) {
-	it := r.client.Get(id)
-	if it == nil {
-		return dto.Activity{}, fmt.Errorf("Activity not found in cache")
-	}
-	Activity, ok := it.Value().(dto.Activity)
-	if !ok {
-		return dto.Activity{}, fmt.Errorf("error asserting Activity type from cache")
-	}
-	return Activity, nil
-}
-
-func (r ActivitiesLocalCacheRepository) Update(ctx context.Context, id string, Activity dto.Activity) (dto.Activity, error) {
-	// TODO implement me
-	panic("implement me")
+func (r ActivitiesLocalCacheRepository) Update(ctx context.Context, id string, activity dto.Activity) (dto.Activity, error) {
+	r.client.Set(activity.ID, activity, r.ttl)
+	return activity, nil
 }
 
 func (r ActivitiesLocalCacheRepository) Delete(ctx context.Context, id string) error {
-	// TODO implement me
-	panic("implement me")
+	if !r.client.Delete(id) {
+		return errors.New("error deleting activity from cache")
+	}
+
+	return nil
 }

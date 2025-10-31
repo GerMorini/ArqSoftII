@@ -56,11 +56,20 @@ func (r MemcachedActivitiesRepository) GetByID(ctx context.Context, id string) (
 }
 
 func (r MemcachedActivitiesRepository) Update(ctx context.Context, id string, activity dto.Activity) (dto.Activity, error) {
-	// TODO implement me
-	panic("implement me")
+	bytes, err := json.Marshal(activity)
+	if err != nil {
+		return dto.Activity{}, fmt.Errorf("error marshalling activity to JSON: %w", err)
+	}
+	if err := r.client.Set(&memcache.Item{
+		Key:        activity.ID,
+		Value:      bytes,
+		Expiration: int32(r.ttl.Seconds()),
+	}); err != nil {
+		return dto.Activity{}, fmt.Errorf("error setting activity in memcached: %w", err)
+	}
+	return activity, nil
 }
 
 func (r MemcachedActivitiesRepository) Delete(ctx context.Context, id string) error {
-	// TODO implement me
-	panic("implement me")
+	return r.client.Delete(id)
 }

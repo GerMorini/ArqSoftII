@@ -29,6 +29,28 @@ const SearchBar = ({
                     <legend className="sr-only">Buscar actividades</legend>
 
                     <div className="filter-inputs-row">
+                        {/* Botón Buscar */}
+                        <button
+                            type="submit"
+                            className="filter-btn-search"
+                            aria-label="Buscar actividades"
+                            disabled={isSearching}
+                        >
+                            {isSearching ? 'Buscando...' : 'Buscar 🔍'}
+                        </button>
+                        {/* Botón Limpiar Filtros */}
+                        {tieneFlltrosActivos && (
+                            <button
+                                type="button"
+                                onClick={onLimpiar}
+                                className="filter-btn-clear"
+                                aria-label="Limpiar todos los filtros"
+                                title="Limpiar"
+                                disabled={isSearching}
+                            >
+                                Limpiar ✖️
+                            </button>
+                        )}
                         {/* Búsqueda por título */}
                         <div className="filter-group search-group">
                             <label htmlFor="busqueda" className="sr-only">
@@ -45,31 +67,6 @@ const SearchBar = ({
                                 aria-label="Buscar actividades por título"
                             />
                         </div>
-
-                        {/* Botón Buscar */}
-                        <button
-                            type="submit"
-                            className="filter-btn-search"
-                            aria-label="Buscar actividades"
-                            disabled={isSearching}
-                        >
-                            {isSearching ? 'Buscando...' : 'Buscar 🔍'}
-                        </button>
-
-                        {/* Botón Limpiar Filtros */}
-                        {tieneFlltrosActivos && (
-                            <button
-                                type="button"
-                                onClick={onLimpiar}
-                                className="filter-btn-clear"
-                                aria-label="Limpiar todos los filtros"
-                                title="Limpiar"
-                                disabled={isSearching}
-                            >
-                                Limpiar ✖️
-                            </button>
-                        )}
-
                         {/* Filtro de descripción */}
                         <div className="filter-group">
                             <label htmlFor="descripcion" className="sr-only">
@@ -79,11 +76,11 @@ const SearchBar = ({
                                 type="text"
                                 id="descripcion"
                                 name="descripcion"
-                                placeholder="Filtrar por descripción..."
+                                placeholder="Buscar por descripción..."
                                 value={filtros.descripcion}
                                 onChange={onFiltroChange}
                                 className="filter-input"
-                                aria-label="Filtrar por descripción de actividad"
+                                aria-label="Buscar por descripción de actividad"
                             />
                         </div>
 

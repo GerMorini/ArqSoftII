@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"search/internal/dto"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -13,10 +12,6 @@ import (
 
 type ItemsService interface {
 	List(ctx context.Context, filters dto.SearchFilters) (dto.PaginatedResponse, error)
-	Create(ctx context.Context, activity dto.Activity) (dto.Activity, error)
-	GetByID(ctx context.Context, id string) (dto.Activity, error)
-	Update(ctx context.Context, id string, activity dto.Activity) (dto.Activity, error)
-	Delete(ctx context.Context, id string) error
 }
 
 type ItemsController struct {
@@ -79,86 +74,4 @@ func (c *ItemsController) List(ctx *gin.Context) {
 
 	log.Infof("exito al realizar busqueda")
 	ctx.JSON(http.StatusOK, resp)
-}
-
-func (c *ItemsController) CreateActivity(ctx *gin.Context) {
-	var activity dto.Activity
-	if err := ctx.ShouldBindJSON(&activity); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid JSON format",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	created, err := c.service.Create(ctx.Request.Context(), activity)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to create activity",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, gin.H{
-		"activity": created,
-	})
-}
-
-func (c *ItemsController) GetActivityByID(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	activity, err := c.service.GetByID(ctx.Request.Context(), id)
-	if err != nil {
-		if strings.Contains(err.Error(), "invalid") {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if strings.Contains(err.Error(), "not found") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "activity not found"})
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get activity", "details": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"activity": activity})
-}
-
-func (c *ItemsController) UpdateActivity(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	var activity dto.Activity
-
-	if err := ctx.BindJSON(&activity); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "consuta con formato incorrecto"})
-		return
-	}
-
-	updated, err := c.service.Update(ctx, id, activity)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, updated)
-}
-
-func (c *ItemsController) DeleteActivity(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	if err := c.service.Delete(ctx, id); err != nil {
-		if strings.Contains(err.Error(), "invalid") {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if strings.Contains(err.Error(), "not found") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "activity not found"})
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete activity", "details": err.Error()})
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
 }
