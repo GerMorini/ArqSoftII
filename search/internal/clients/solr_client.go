@@ -9,6 +9,8 @@ import (
 	"search/internal/dto"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type SolrClient struct {
@@ -18,16 +20,10 @@ type SolrClient struct {
 }
 
 type SolrDocument struct {
-	ID                 string `json:"id"`
-	Titulo             string `json:"titulo"`
-	Descripcion        string `json:"descripcion"`
-	Profesor           string `json:"profesor"`
-	DiaSemana          string `json:"dia"`
-	HoraInicio         string `json:"hora_inicio"`
-	HoraFin            string `json:"hora_fin"`
-	CapacidadMax       int    `json:"cupo"`
-	LugaresDisponibles int    `json:"lugares_disponibles"`
-	FotoUrl            string `json:"foto_url"`
+	ID          string   `json:"id"`
+	Titulo      []string `json:"titulo"`
+	Descripcion []string `json:"descripcion"`
+	DiaSemana   []string `json:"dia"`
 }
 
 type SolrResponse struct {
@@ -61,9 +57,9 @@ func NewSolrClient(host, port, core string) *SolrClient {
 func (s *SolrClient) Index(ctx context.Context, activity dto.Activity) error {
 	doc := SolrDocument{
 		ID:          activity.ID,
-		Titulo:      activity.Titulo,
-		Descripcion: activity.Descripcion,
-		DiaSemana:   activity.DiaSemana,
+		Titulo:      []string{activity.Titulo},
+		Descripcion: []string{activity.Descripcion},
+		DiaSemana:   []string{activity.DiaSemana},
 	}
 
 	data, err := json.Marshal([]SolrDocument{doc})
@@ -123,6 +119,7 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	if err != nil {
 		return dto.PaginatedResponse{}, fmt.Errorf("error creating request: %w", err)
 	}
+	log.Infof("REQUEST: %v", req)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -143,9 +140,9 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	for i, doc := range solrResp.Response.Docs {
 		activitys[i] = dto.Activity{
 			ID:          doc.ID,
-			Titulo:      doc.Titulo,
-			Descripcion: doc.Descripcion,
-			DiaSemana:   doc.DiaSemana,
+			Titulo:      doc.Titulo[0],
+			Descripcion: doc.Descripcion[0],
+			DiaSemana:   doc.DiaSemana[0],
 		}
 	}
 

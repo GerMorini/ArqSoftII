@@ -12,11 +12,6 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-const (
-	encodingJSON = "application/json"
-	encodingUTF8 = "UTF-8"
-)
-
 type RabbitMQClient struct {
 	connection *amqp091.Connection
 	channel    *amqp091.Channel
