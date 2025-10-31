@@ -2,18 +2,17 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"search/internal/dto"
-	"strings"
 )
 
 type ActivityEvent struct {
 	Action      string `json:"action"`
-	Nombre      string
-	Descripcion string
-	Dia         string
+	ID          string `json:"id"`
+	Nombre      string `json:"nombre"`
+	Descripcion string `json:"descripcion"`
+	Dia         string `json:"dia"`
 }
 
 type ActivitiesRepository interface {
@@ -28,37 +27,23 @@ type ActivitiesConsumer interface {
 }
 
 type ActiviesServiceImpl struct {
-	cache    ActivitiesRepository
-	search   ActivitiesRepository
-	consumer ActivitiesConsumer
+	localCache ActivitiesRepository
+	cache      ActivitiesRepository
+	search     ActivitiesRepository
+	consumer   ActivitiesConsumer
 }
 
-func NewActivitysService(cache ActivitiesRepository, search ActivitiesRepository, consumer ActivitiesConsumer) ActiviesServiceImpl {
+func NewActivitiesService(localCache ActivitiesRepository, cache ActivitiesRepository, search ActivitiesRepository, consumer ActivitiesConsumer) ActiviesServiceImpl {
 	return ActiviesServiceImpl{
-		cache:    cache,
-		search:   search,
-		consumer: consumer,
+		localCache: localCache,
+		cache:      cache,
+		search:     search,
+		consumer:   consumer,
 	}
 }
 
 func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilters) (dto.PaginatedResponse, error) {
 	return s.search.List(ctx, filters)
-}
-
-func (s *ActiviesServiceImpl) validateActivity(activity dto.Activity) error {
-	if strings.TrimSpace(activity.Titulo) == "" {
-		return errors.New("titulo is required and cannot be empty")
-	}
-
-	if strings.TrimSpace(activity.Descripcion) == "" {
-		return errors.New("descripcion is required and cannot be empty")
-	}
-
-	if strings.TrimSpace(activity.DiaSemana) == "" {
-		return errors.New("diaSemana is required and cannot be empty")
-	}
-
-	return nil
 }
 
 func (s *ActiviesServiceImpl) InitConsumer(ctx context.Context) {
@@ -73,78 +58,96 @@ func (s *ActiviesServiceImpl) InitConsumer(ctx context.Context) {
 func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message ActivityEvent) error {
 	slog.Info("📨 Processing message",
 		slog.String("action", message.Action),
-		slog.String("activity_id", message.ActivityID),
+		slog.String("id", message.ID),
+		slog.String("nombre", message.Nombre),
+		slog.String("descripcion", message.Descripcion),
+		slog.String("dia", message.Dia),
 	)
+
+	activity := dto.Activity{
+		ID:          message.ID,
+		Titulo:      message.Nombre,
+		Descripcion: message.Descripcion,
+		DiaSemana:   message.Dia,
+	}
 
 	switch message.Action {
 	case "create":
-		slog.Info("✅ Activity created", slog.String("activity_id", message.ActivityID))
+		slog.Info("✅ Activity created", slog.String("activity_id", message.ID))
 
 		// Index in SolR
-		if _, err := s.search.Create(ctx, *activityPtr); err != nil {
+		if _, err := s.search.Create(ctx, activity); err != nil {
 			slog.Error("❌ Error indexing activity in search",
-				slog.String("activity_id", message.ActivityID),
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 			return fmt.Errorf("error indexing activity: %w", err)
 		}
 
-		// Cache activity
-		if _, err := s.cache.Create(ctx, *activityPtr); err != nil {
+		if _, err := s.cache.Create(ctx, activity); err != nil {
+			slog.Warn("⚠️ Error caching activity in localcache",
+				slog.String("activity_id", message.ID),
+				slog.String("error", err.Error()))
+		}
+
+		if _, err := s.cache.Create(ctx, activity); err != nil {
 			slog.Warn("⚠️ Error caching activity",
-				slog.String("activity_id", message.ActivityID),
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 		}
 
-		slog.Info("🔍 Activity indexed in search engine", slog.String("activity_id", message.ActivityID))
+		slog.Info("🔍 Activity indexed in search engine", slog.String("activity_id", message.ID))
 	case "update":
-		slog.Info("✏️ Activity updated", slog.String("activity_id", message.ActivityID))
-
-		// Fetch updated activity from Activities API
-		activityPtr, err := s.activitiesAPI.GetActivityByID(ctx, message.ActivityID)
-		if err != nil {
-			slog.Error("❌ Error getting activity from Activities API for reindexing",
-				slog.String("activity_id", message.ActivityID),
-				slog.String("error", err.Error()))
-			return fmt.Errorf("error getting activity for reindexing: %w", err)
-		}
+		slog.Info("✏️ Activity updated", slog.String("activity_id", message.ID))
 
 		// Reindex in SolR
-		_, err = s.search.Update(ctx, message.ActivityID, *activityPtr)
+		_, err := s.search.Update(ctx, message.ID, activity)
 		if err != nil {
 			slog.Error("❌ Error reindexing activity in search",
-				slog.String("activity_id", message.ActivityID),
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 			return fmt.Errorf("error reindexing activity: %w", err)
 		}
 
 		// Update cache
-		if _, err := s.cache.Update(ctx, message.ActivityID, *activityPtr); err != nil {
-			slog.Warn("⚠️ Error updating activity in cache",
-				slog.String("activity_id", message.ActivityID),
+		if _, err := s.localCache.Update(ctx, message.ID, activity); err != nil {
+			slog.Warn("⚠️ Error updating activity in local cache",
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 		}
 
-		slog.Info("🔍 Activity reindexed in search engine", slog.String("activity_id", message.ActivityID))
+		if _, err := s.cache.Update(ctx, message.ID, activity); err != nil {
+			slog.Warn("⚠️ Error updating activity in cache",
+				slog.String("activity_id", message.ID),
+				slog.String("error", err.Error()))
+		}
+
+		slog.Info("🔍 Activity reindexed in search engine", slog.String("activity_id", message.ID))
 	case "delete":
-		slog.Info("🗑️ Activity deleted", slog.String("activity_id", message.ActivityID))
+		slog.Info("🗑️ Activity deleted", slog.String("activity_id", message.ID))
 
 		// Delete from SolR
-		err := s.search.Delete(ctx, message.ActivityID)
+		err := s.search.Delete(ctx, message.ID)
 		if err != nil {
 			slog.Error("❌ Error deleting activity in search",
-				slog.String("activity_id", message.ActivityID),
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 			return fmt.Errorf("error deleting activity in search: %w", err)
 		}
 
 		// Delete from cache
-		if err := s.cache.Delete(ctx, message.ActivityID); err != nil {
-			slog.Warn("⚠️ Error deleting activity from cache",
-				slog.String("activity_id", message.ActivityID),
+		if err := s.localCache.Delete(ctx, message.ID); err != nil {
+			slog.Warn("⚠️ Error deleting activity from local cache",
+				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 		}
 
-		slog.Info("🗑️ Activity deleted from search engine", slog.String("activity_id", message.ActivityID))
+		if err := s.cache.Delete(ctx, message.ID); err != nil {
+			slog.Warn("⚠️ Error deleting activity from cache",
+				slog.String("activity_id", message.ID),
+				slog.String("error", err.Error()))
+		}
+
+		slog.Info("🗑️ Activity deleted from search engine", slog.String("activity_id", message.ID))
 	default:
 		slog.Info("⚠️ Unknown action", slog.String("action", message.Action))
 	}

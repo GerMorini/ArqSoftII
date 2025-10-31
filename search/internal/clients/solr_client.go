@@ -60,16 +60,10 @@ func NewSolrClient(host, port, core string) *SolrClient {
 
 func (s *SolrClient) Index(ctx context.Context, activity dto.Activity) error {
 	doc := SolrDocument{
-		ID:                 activity.ID,
-		Titulo:             activity.Titulo,
-		Descripcion:        activity.Descripcion,
-		Profesor:           activity.Profesor,
-		DiaSemana:          activity.DiaSemana,
-		HoraInicio:         activity.HoraInicio,
-		HoraFin:            activity.HoraFin,
-		CapacidadMax:       activity.CapacidadMax,
-		LugaresDisponibles: activity.LugaresDisponibles,
-		FotoUrl:            activity.FotoUrl,
+		ID:          activity.ID,
+		Titulo:      activity.Titulo,
+		Descripcion: activity.Descripcion,
+		DiaSemana:   activity.DiaSemana,
 	}
 
 	data, err := json.Marshal([]SolrDocument{doc})
@@ -148,23 +142,17 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	activitys := make([]dto.Activity, len(solrResp.Response.Docs))
 	for i, doc := range solrResp.Response.Docs {
 		activitys[i] = dto.Activity{
-			ID:                 doc.ID,
-			Titulo:             doc.Titulo,
-			Descripcion:        doc.Descripcion,
-			Profesor:           doc.Profesor,
-			DiaSemana:          doc.DiaSemana,
-			HoraInicio:         doc.HoraInicio,
-			HoraFin:            doc.HoraFin,
-			CapacidadMax:       doc.CapacidadMax,
-			LugaresDisponibles: doc.LugaresDisponibles,
-			FotoUrl:            doc.FotoUrl,
+			ID:          doc.ID,
+			Titulo:      doc.Titulo,
+			Descripcion: doc.Descripcion,
+			DiaSemana:   doc.DiaSemana,
 		}
 	}
 
 	return dto.PaginatedResponse{
 		Page:    page,
 		Count:   len(activitys),
-		Total:   solrResp.Response.NumFound, // total de coincidencias
+		Total:   solrResp.Response.NumFound,
 		Results: activitys,
 	}, nil
 }

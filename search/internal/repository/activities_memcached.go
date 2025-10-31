@@ -15,7 +15,7 @@ type MemcachedActivitiesRepository struct {
 	client *memcache.Client
 }
 
-func NewMemcachedActivitysRepository(host string, port string, ttl time.Duration) MemcachedActivitiesRepository {
+func NewMemcachedActivitiesRepository(host string, port string, ttl time.Duration) MemcachedActivitiesRepository {
 	client := memcache.New(fmt.Sprintf("%s:%s", host, port))
 
 	return MemcachedActivitiesRepository{

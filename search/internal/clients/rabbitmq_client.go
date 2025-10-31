@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"search/internal/services"
 	"time"
 
-	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -66,31 +66,6 @@ func NewRabbitMQClient(user, password, queueName, host, port string) *RabbitMQCl
 
 	log.Infof("Successfully connected to RabbitMQ at %s:%s", host, port)
 	return &RabbitMQClient{connection: connection, channel: channel, queue: &queue}
-}
-
-func (r *RabbitMQClient) Publish(ctx context.Context, action string, activityID string) error {
-	message := map[string]interface{}{
-		"action":      action,
-		"activity_id": activityID,
-	}
-
-	bytes, err := json.Marshal(message)
-	if err != nil {
-		return fmt.Errorf("error marshalling message to JSON: %w", err)
-	}
-
-	if err := r.channel.PublishWithContext(ctx, "", r.queue.Name, false, false, amqp091.Publishing{
-		ContentType:     encodingJSON,
-		ContentEncoding: encodingUTF8,
-		DeliveryMode:    amqp091.Transient,
-		MessageId:       uuid.New().String(),
-		Timestamp:       time.Now().UTC(),
-		AppId:           "activitys-api",
-		Body:            bytes,
-	}); err != nil {
-		return fmt.Errorf("error publishing message to RabbitMQ: %w", err)
-	}
-	return nil
 }
 
 func (r *RabbitMQClient) Consume(ctx context.Context, handler func(context.Context, services.ActivityEvent) error) error {

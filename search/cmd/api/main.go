@@ -20,13 +20,15 @@ func main() {
 	cfg := config.Load()
 	ctx := context.Background()
 
-	activiesMemcachedRepo := repository.NewMemcachedActivitysRepository(
+	activitiesLocalCacheRepo := repository.NewActivitysLocalCacheRepository(1 * time.Hour)
+
+	activiesMemcachedRepo := repository.NewMemcachedActivitiesRepository(
 		cfg.Memcached.Host,
 		cfg.Memcached.Port,
 		time.Duration(cfg.Memcached.TTLSeconds)*time.Second,
 	)
 
-	activitysSolrRepo := repository.NewSolrActivitysRepository(
+	activitiesSolrRepo := repository.NewSolrActivitysRepository(
 		cfg.Solr.Host,
 		cfg.Solr.Port,
 		cfg.Solr.Core,
@@ -40,7 +42,7 @@ func main() {
 		cfg.RabbitMQ.Port,
 	)
 
-	activityService := services.NewActivitysService(activiesMemcachedRepo, activitysSolrRepo, activiesQueue, activiesQueue)
+	activityService := services.NewActivitiesService(activiesMemcachedRepo, activitiesSolrRepo, activiesQueue)
 	go activityService.InitConsumer(ctx)
 
 	activityController := controllers.NewActivitiesController(&activityService)
@@ -53,10 +55,6 @@ func main() {
 	})
 
 	router.GET("/activitys", activityController.List)
-	router.POST("/activitys", activityController.CreateActivity)
-	router.GET("/activitys/:id", activityController.GetActivityByID)
-	router.PUT("/activitys/:id", activityController.UpdateActivity)
-	router.DELETE("/activitys/:id", activityController.DeleteActivity)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
