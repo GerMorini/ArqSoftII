@@ -187,6 +187,34 @@ export const actividadService = {
   },
 
   /**
+   * Obtener datos completos de actividades inscritas por usuario
+   */
+  async getInscribedActivitiesData(usuarioId) {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${ACTIVITIES_URL}/inscriptions/data/${usuarioId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        logger.logApiError(`/inscriptions/data/${usuarioId}`, response.status, 'Failed to fetch inscribed activities data');
+        throw new Error('Error al cargar las actividades inscritas');
+      }
+
+      const data = await response.json();
+      const activities = data.activities || [];
+      logger.info(`Actividades inscritas cargadas para usuario ${usuarioId}`, { count: activities.length });
+      return activities;
+    } catch (error) {
+      logger.error(`Error al obtener actividades inscritas del usuario ${usuarioId}`, error);
+      throw error;
+    }
+  },
+
+  /**
    * Crear una nueva actividad
    */
   async createActividad(actividadData) {

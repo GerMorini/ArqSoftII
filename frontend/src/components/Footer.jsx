@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import useCurrentUser from '../hooks/useCurrentUser';
 import '../styles/Footer.css';
 
 const Footer = () => {
+    const { isLoggedIn, isAdmin } = useCurrentUser();
     const currentYear = new Date().getFullYear();
 
     return (
@@ -23,6 +25,13 @@ const Footer = () => {
                                     Actividades
                                 </Link>
                             </li>
+                            {isLoggedIn && !isAdmin && (
+                                <li>
+                                    <Link to="/mis-actividades" aria-label="Ver mis actividades">
+                                        Mis Actividades
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <Link to="/contacto" aria-label="Ir a página de contacto">
                                     Contacto

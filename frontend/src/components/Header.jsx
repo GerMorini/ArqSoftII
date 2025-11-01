@@ -83,6 +83,18 @@ const Header = () => {
                                 🏋️ Actividades
                             </button>
                         </li>
+                        {isLoggedIn && !isAdmin && (
+                            <li>
+                                <button
+                                    onClick={() => handleNavClick("/mis-actividades")}
+                                    className={`nav-link ${isActive("/mis-actividades") ? "active" : ""}`}
+                                    aria-label="Ver mis actividades"
+                                    title="Mis Actividades"
+                                >
+                                    📋 Mis Actividades
+                                </button>
+                            </li>
+                        )}
                         {isAdmin && (
                             <li>
                                 <button

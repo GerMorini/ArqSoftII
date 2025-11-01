@@ -16,7 +16,7 @@ const ActivityCard = ({
             <h3 style={{ fontWeight: 'bold' }}>{actividad.titulo}</h3>
             <div className="actividad-info-basic">
                 <p style={{ fontStyle: 'italic' }}>{actividad.descripcion}</p>
-                <p>Día: {actividad.dia || "No especificado"}</p>
+                <p>📅 {actividad.dia || "No especificado"}</p>
             </div>
 
             <div className="card-actions">

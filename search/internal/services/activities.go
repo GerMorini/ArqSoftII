@@ -24,49 +24,75 @@ type ActivitiesRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+type ActivitiesCacheRepository interface {
+	SetPaginatedResult(filters dto.SearchFilters, result dto.PaginatedResponse) error
+	ActivitiesRepository
+}
+
 type ActivitiesConsumer interface {
 	Consume(ctx context.Context, handler func(ctx context.Context, message ActivityEvent) error) error
 }
 
 type ActiviesServiceImpl struct {
-	localCache ActivitiesRepository
-	cache      ActivitiesRepository
+	localCache ActivitiesCacheRepository
+	memCache   ActivitiesCacheRepository
 	search     ActivitiesRepository
 	consumer   ActivitiesConsumer
 }
 
-func NewActivitiesService(localCache ActivitiesRepository, cache ActivitiesRepository, search ActivitiesRepository, consumer ActivitiesConsumer) ActiviesServiceImpl {
+func NewActivitiesService(localCache ActivitiesCacheRepository, cache ActivitiesCacheRepository, search ActivitiesRepository, consumer ActivitiesConsumer) ActiviesServiceImpl {
 	return ActiviesServiceImpl{
 		localCache: localCache,
-		cache:      cache,
+		memCache:   cache,
 		search:     search,
 		consumer:   consumer,
 	}
 }
 
 func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilters) (dto.PaginatedResponse, error) {
-	// TODO: si no lo encuentra en caché la idea sería consultar actividades para obtenerla y cachearla
+	var localCacheMiss, memcacheMiss bool = false, false
+
 	result, err := s.localCache.List(ctx, filters)
 	if err == nil {
-		log.Infof("cache hit en localcache")
+		log.Infof("cache hit en localcache: %v", filters)
 		return result, nil
 	}
 	log.Warnf("no se encontro actividad en cache local")
+	localCacheMiss = true
 
-	result, err = s.cache.List(ctx, filters)
+	result, err = s.memCache.List(ctx, filters)
 	if err == nil {
-		log.Infof("cache hit en memcache")
+		log.Infof("cache hit en memcache: %v", filters)
 		return result, nil
 	}
 	log.Warnf("no se encontro actividad en memcache")
+	memcacheMiss = true
 
 	result, err = s.search.List(ctx, filters)
 	if err == nil {
 		log.Infof("actividad buscada exitosamente en solr")
+
+		// Cache the entire paginated response using the filters as the key
+		if localCacheMiss && result.Total != 0 {
+			if err := s.localCache.SetPaginatedResult(filters, result); err != nil {
+				log.Errorf("error cacheando resultado en cache local: %s", err.Error())
+			} else {
+				log.Infof("resultado cacheado exitosamente en cache local")
+			}
+		}
+
+		if memcacheMiss && result.Total != 0 {
+			if err := s.memCache.SetPaginatedResult(filters, result); err != nil {
+				log.Errorf("error cacheando resultado en memcache: %s", err.Error())
+			} else {
+				log.Infof("resultado cacheado exitosamente en memcache")
+			}
+		}
+
 		return result, err
 	}
-	log.Warnf("no se encontro actividad en solr")
 
+	log.Infof("no se encontro actividad en solr")
 	return dto.PaginatedResponse{}, err
 }
 
@@ -107,13 +133,13 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 			return fmt.Errorf("error indexing activity: %w", err)
 		}
 
-		if _, err := s.cache.Create(ctx, activity); err != nil {
+		if _, err := s.memCache.Create(ctx, activity); err != nil {
 			slog.Warn("⚠️ Error caching activity in localcache",
 				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
 		}
 
-		if _, err := s.cache.Create(ctx, activity); err != nil {
+		if _, err := s.memCache.Create(ctx, activity); err != nil {
 			slog.Warn("⚠️ Error caching activity",
 				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
@@ -139,7 +165,7 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 				slog.String("error", err.Error()))
 		}
 
-		if _, err := s.cache.Update(ctx, message.ID, activity); err != nil {
+		if _, err := s.memCache.Update(ctx, message.ID, activity); err != nil {
 			slog.Warn("⚠️ Error updating activity in cache",
 				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))
@@ -165,7 +191,7 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 				slog.String("error", err.Error()))
 		}
 
-		if err := s.cache.Delete(ctx, message.ID); err != nil {
+		if err := s.memCache.Delete(ctx, message.ID); err != nil {
 			slog.Warn("⚠️ Error deleting activity from cache",
 				slog.String("activity_id", message.ID),
 				slog.String("error", err.Error()))

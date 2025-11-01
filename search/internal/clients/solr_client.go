@@ -9,8 +9,6 @@ import (
 	"search/internal/dto"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type SolrClient struct {
@@ -119,7 +117,6 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 	if err != nil {
 		return dto.PaginatedResponse{}, fmt.Errorf("error creating request: %w", err)
 	}
-	log.Infof("REQUEST: %v", req)
 
 	resp, err := s.client.Do(req)
 	if err != nil {

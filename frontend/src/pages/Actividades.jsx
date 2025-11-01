@@ -39,8 +39,7 @@ const Actividades = () => {
     const [filtros, setFiltros] = useState({
         busqueda: "",
         descripcion: "",
-        dia: "",
-        soloInscripto: false
+        dia: ""
     });
     const [paginaActual, setPaginaActual] = useState(1);
     const ITEMS_POR_PAGINA = 9;
@@ -55,10 +54,10 @@ const Actividades = () => {
     }, []);
 
     const handleFiltroChange = (e) => {
-        const { name, value, checked, type } = e.target;
+        const { name, value } = e.target;
         setFiltros(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: value
         }));
         setPaginaActual(1);
     };
@@ -67,8 +66,7 @@ const Actividades = () => {
         setFiltros({
             busqueda: "",
             descripcion: "",
-            dia: "",
-            soloInscripto: false
+            dia: ""
         });
         setPaginaActual(1);
         // Search again with empty filters
@@ -102,16 +100,9 @@ const Actividades = () => {
 
             // Call Search API with pagination
             const response = await searchService.searchActivities(searchFilters);
-            let results = response.results || [];
+            const results = response.results || [];
 
             logger.info('Search results:', results);
-
-            // Apply client-side filter for "soloInscripto"
-            if (currentFiltros.soloInscripto && inscripciones.length > 0) {
-                results = results.filter(actividad =>
-                    inscripciones.includes(actividad.id_actividad)
-                );
-            }
 
             setActividadesFiltradas(results);
             setTotalItems(response.total || 0);
@@ -218,6 +209,15 @@ const Actividades = () => {
             return;
         }
 
+        if (!isLoggedIn) {
+            setAlertDialog({
+                title: '¿Estás listo para empezar?',
+                message: 'Inicia sesión para ver mas',
+                type: 'info'
+            });
+            return
+        }
+
         try {
             // Fetch complete activity data from API
             const actividadCompleta = await fetchById(actividad.id_actividad);
@@ -310,8 +310,6 @@ const Actividades = () => {
                 onFiltroChange={handleFiltroChange}
                 onLimpiar={handleLimpiarFiltros}
                 onSearch={handleSearch}
-                mostrarToggle={isLoggedIn && !isAdmin}
-                soloInscriptoDisabled={false}
                 isSearching={isSearching}
             />
 
@@ -392,6 +390,7 @@ const Actividades = () => {
                     actividad={actividadEditar}
                     onClose={handleCloseModal}
                     onSave={handleSaveEdit}
+                    inscriptionsEdit={true}
                 />
             )}
 

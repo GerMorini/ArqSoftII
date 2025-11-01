@@ -1,0 +1,167 @@
+/* Main page container with background */
+.mis-actividades-page {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Background gym image */
+.background-gym {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: fixed;
+    top: 0;
+    left: 0;
+    filter: brightness(0.4);
+    z-index: -1;
+}
+
+/* White content blanket */
+.mis-actividades-content {
+    position: relative;
+    z-index: 1;
+    width: 90%;
+    max-width: 1400px;
+    margin: 6rem auto 2rem;
+    padding: 2.5rem;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    min-height: 600px;
+}
+
+/* Page header */
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    margin: 0;
+}
+
+/* Messages */
+.error-message {
+    padding: 1rem 1.5rem;
+    background-color: #ffebee;
+    color: #c62828;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-weight: 500;
+}
+
+.loading-message {
+    text-align: center;
+    padding: 3rem;
+    font-size: 1.2rem;
+    color: #7f8c8d;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #7f8c8d;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-message h2 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.empty-message p {
+    font-size: 1.1rem;
+    color: #95a5a6;
+}
+
+/* Activities grid */
+.actividades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .actividades-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .mis-actividades-page {
+        margin-top: 70px;
+    }
+
+    .mis-actividades-content {
+        width: 95%;
+        padding: 1.5rem;
+        margin: 1rem auto;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+    }
+
+    .actividades-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .empty-message {
+        padding: 2rem 1rem;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+    }
+
+    .empty-message h2 {
+        font-size: 1.4rem;
+    }
+
+    .empty-message p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mis-actividades-content {
+        padding: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.6rem;
+    }
+
+    .page-header {
+        margin-bottom: 2rem;
+    }
+}

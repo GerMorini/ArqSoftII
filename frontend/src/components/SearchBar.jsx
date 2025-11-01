@@ -7,8 +7,6 @@ const SearchBar = ({
     onFiltroChange,
     onLimpiar,
     onSearch,
-    mostrarToggle = false,
-    soloInscriptoDisabled = false,
     isSearching = false
 }) => {
     const tieneFlltrosActivos = Object.values(filtros).some(v => v);
@@ -105,31 +103,6 @@ const SearchBar = ({
                                 ))}
                             </select>
                         </div>
-
-                        {/* Checkbox Solo Inscripto */}
-                        {mostrarToggle && (
-                            <div className="checkbox-group">
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        name="soloInscripto"
-                                        checked={filtros.soloInscripto}
-                                        onChange={(e) =>
-                                            onFiltroChange({
-                                                target: {
-                                                    name: 'soloInscripto',
-                                                    type: 'checkbox',
-                                                    checked: e.target.checked
-                                                }
-                                            })
-                                        }
-                                        disabled={soloInscriptoDisabled}
-                                        aria-label="Mostrar solo mis actividades inscritas"
-                                    />
-                                    <span>Mis actividades</span>
-                                </label>
-                            </div>
-                        )}
                     </div>
                 </fieldset>
             </form>

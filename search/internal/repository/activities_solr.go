@@ -27,17 +27,6 @@ func (r *SolrActivitysRepository) List(ctx context.Context, filters dto.SearchFi
 	return r.client.Search(ctx, query, filters.Page, filters.Count)
 }
 
-func (r *SolrActivitysRepository) GetByID(ctx context.Context, id string) (dto.Activity, error) {
-	results, err := r.List(ctx, dto.SearchFilters{ID: id})
-	if err != nil {
-		return dto.Activity{}, fmt.Errorf("error searching activity by ID in solr: %w", err)
-	}
-	if results.Total == 0 {
-		return dto.Activity{}, fmt.Errorf("activity with ID %s not found", id)
-	}
-	return results.Results[0], nil
-}
-
 func (r *SolrActivitysRepository) Create(ctx context.Context, activity dto.Activity) (dto.Activity, error) {
 	if err := r.client.Index(ctx, activity); err != nil {
 		return dto.Activity{}, fmt.Errorf("error indexing activity in solr: %w", err)

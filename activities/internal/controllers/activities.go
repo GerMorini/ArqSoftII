@@ -457,3 +457,57 @@ func (c *ActivitiesController) GetInscripcionesByUserID(ctx *gin.Context) {
 	log.Infof("inscripciones obtenidas exitosamente para usuario %s", userID)
 	ctx.JSON(http.StatusOK, gin.H{"user_id": userID, "inscripciones": inscripciones, "count": len(inscripciones)})
 }
+
+// GetInscribedActivities maneja GET /inscriptions/data/:userId
+func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
+	userID := ctx.Param("userId")
+	if userID == "" {
+		log.Warnf("peticion de actividades inscritas sin userId")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "userId parameter is required"})
+		return
+	}
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		log.Warnf("token sin claims")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	requesterID, ok := getUserIDFromClaims(claims)
+	if !ok {
+		log.Warnf("id de usuario invalido en claims del token")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id in token claims"})
+		return
+	}
+	// Only allow users to fetch their own activities unless admin
+	if requesterID != userID && !isAdminFromClaims(claims) {
+		log.Warnf("usuario %s intento acceder a actividades inscritas de usuario %s sin permisos", requesterID, userID)
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "cannot access other user's inscribed activities"})
+		return
+	}
+
+	// Step 1: Get activity IDs for this user
+	inscripciones, err := c.service.GetInscripcionesByUserID(ctx.Request.Context(), userID)
+	if err != nil {
+		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
+		return
+	}
+
+	// Step 2: If no inscriptions, return empty array
+	if len(inscripciones) == 0 {
+		log.Infof("usuario %s no tiene actividades inscritas", userID)
+		ctx.JSON(http.StatusOK, gin.H{"activities": []interface{}{}, "count": 0})
+		return
+	}
+
+	// Step 3: Get full activity data for these IDs
+	activities, err := c.service.GetMany(ctx.Request.Context(), inscripciones)
+	if err != nil {
+		log.Errorf("error al obtener datos de actividades para usuario %s: %v", userID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch activity data", "details": err.Error()})
+		return
+	}
+
+	log.Infof("actividades inscritas obtenidas exitosamente para usuario %s: %d actividades", userID, len(activities))
+	ctx.JSON(http.StatusOK, gin.H{"activities": activities, "count": len(activities)})
+}

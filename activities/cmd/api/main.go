@@ -95,6 +95,9 @@ func main() {
 	// GET /inscriptions/:userId - obtener actividades inscritas por usuario (protegido)
 	router.GET("/inscriptions/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscripcionesByUserID)
 
+	// GET /inscriptions/data/:userId - obtener datos completos de actividades inscritas por usuario (protegido)
+	router.GET("/inscriptions/data/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscribedActivities)
+
 	// Configuración del server HTTP
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

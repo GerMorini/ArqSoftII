@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Actividades from './pages/Actividades.jsx';
+import MisActividades from './pages/MisActividades.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import Layout from './components/Layout.jsx';
 import Home from './pages/Home.jsx';
@@ -31,6 +32,7 @@ function App() {
         <Route path="/" element={<Layout setAlertDialog={setAlertDialog} />}>
           <Route index element={<Home />} />
           <Route path="/actividades" element={<Actividades />} />
+          <Route path="/mis-actividades" element={<MisActividades />} />
           <Route path="/contacto" element={<Contact />} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel setAlertDialog={setAlertDialog} /></ProtectedRoute>} />
         </Route>
