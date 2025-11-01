@@ -136,9 +136,9 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 		return dto.PaginatedResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	activitys := make([]dto.Activity, len(solrResp.Response.Docs))
+	activities := make([]dto.Activity, len(solrResp.Response.Docs))
 	for i, doc := range solrResp.Response.Docs {
-		activitys[i] = dto.Activity{
+		activities[i] = dto.Activity{
 			ID:          doc.ID,
 			Titulo:      doc.Titulo[0],
 			Descripcion: doc.Descripcion[0],
@@ -148,9 +148,9 @@ func (s *SolrClient) Search(ctx context.Context, query string, page int, count i
 
 	return dto.PaginatedResponse{
 		Page:    page,
-		Count:   len(activitys),
+		Count:   len(activities),
 		Total:   solrResp.Response.NumFound,
-		Results: activitys,
+		Results: activities,
 	}, nil
 }
 

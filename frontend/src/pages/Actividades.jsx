@@ -17,11 +17,8 @@ const Actividades = () => {
     const { isLoggedIn, isAdmin, userId: idUsuario } = useCurrentUser();
 
     const {
-        actividades,
         inscripciones,
-        loading,
-        error,
-        fetchActividades,
+        fetchById,
         fetchInscripciones,
         enrollInActividad,
         unenrollFromActividad,
@@ -30,6 +27,7 @@ const Actividades = () => {
     } = useActividades(idUsuario);
 
     const [actividadesFiltradas, setActividadesFiltradas] = useState([]);
+    const [totalItems, setTotalItems] = useState(0);
     const [actividadEditar, setActividadEditar] = useState(null);
     const [expandedActividad, setExpandedActividad] = useState(null);
     const [actividadAEliminar, setActividadAEliminar] = useState(null);
@@ -75,31 +73,34 @@ const Actividades = () => {
         setPaginaActual(1);
         // Search again with empty filters
         performSearch({
+            id: "",
             busqueda: "",
             descripcion: "",
-            dia: "",
-            soloInscripto: false
+            page: 1
         });
     };
 
     const handleSearch = () => {
-        performSearch(filtros);
+        performSearch(filtros, paginaActual);
     };
 
-    const performSearch = async (currentFiltros) => {
+    const performSearch = async (currentFiltros, page = 1) => {
         setIsSearching(true);
         setSearchError(null);
 
         try {
-            // Build search filters
-            const searchFilters = {};
+            // Build search filters with pagination
+            const searchFilters = {
+                page: page,
+                count: ITEMS_POR_PAGINA
+            };
             if (currentFiltros.busqueda) searchFilters.titulo = currentFiltros.busqueda;
             if (currentFiltros.descripcion) searchFilters.descripcion = currentFiltros.descripcion;
             if (currentFiltros.dia) searchFilters.dia = currentFiltros.dia;
 
             logger.info('Searching with filters:', searchFilters);
 
-            // Call Search API
+            // Call Search API with pagination
             const response = await searchService.searchActivities(searchFilters);
             let results = response.results || [];
 
@@ -113,31 +114,42 @@ const Actividades = () => {
             }
 
             setActividadesFiltradas(results);
-            setPaginaActual(1);
+            setTotalItems(response.total || 0);
+            setPaginaActual(page);
         } catch (error) {
             logger.error('Error searching activities:', error);
             setSearchError('Error al buscar actividades. Por favor, intenta nuevamente.');
             setActividadesFiltradas([]);
+            setTotalItems(0);
         } finally {
             setIsSearching(false);
         }
     };
 
-    // Paginación
-    const totalPaginas = Math.ceil(actividadesFiltradas.length / ITEMS_POR_PAGINA);
-    const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-    const actividadesPaginadas = actividadesFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA);
+    // Paginación (server-side)
+    const totalPaginas = Math.ceil(totalItems / ITEMS_POR_PAGINA);
 
     const handlePrevPage = () => {
-        setPaginaActual(prev => Math.max(prev - 1, 1));
+        const newPage = Math.max(paginaActual - 1, 1);
+        if (newPage !== paginaActual) {
+            performSearch(filtros, newPage);
+        }
     };
 
     const handleNextPage = () => {
-        setPaginaActual(prev => Math.min(prev + 1, totalPaginas));
+        const newPage = Math.min(paginaActual + 1, totalPaginas);
+        if (newPage !== paginaActual) {
+            performSearch(filtros, newPage);
+        }
     };
 
     const handleEnroling = (actividad) => {
         if (!isLoggedIn) {
+            setAlertDialog({
+                title: 'No estás loggeado',
+                message: 'Debes iniciar sesión para inscribirte',
+                type: 'error'
+            });
             navigate("/login");
             return;
         }
@@ -153,8 +165,8 @@ const Actividades = () => {
                 message: '¡Te has inscripto a la actividad!',
                 type: 'success'
             });
-            // Refresh search results
-            handleSearch();
+            // Refresh search results preserving current page
+            performSearch(filtros, paginaActual);
         } catch (error) {
             logger.error('handleConfirmEnroll error', error);
             setAlertDialog({
@@ -179,8 +191,8 @@ const Actividades = () => {
                 message: 'Te has desincripto de la actividad',
                 type: 'success'
             });
-            // Refresh search results
-            handleSearch();
+            // Refresh search results preserving current page
+            performSearch(filtros, paginaActual);
         } catch (error) {
             logger.error("handleConfirmUnenroll error", error);
             setAlertDialog({
@@ -200,9 +212,46 @@ const Actividades = () => {
         setActividadADesincribir(actividad);
     };
 
-    const handleEditar = (actividad) => {
+    const handleToggleExpand = async (actividad) => {
+        if (!actividad || !actividad.id_actividad) {
+            logger.error("Error: actividad sin ID", actividad);
+            return;
+        }
+
+        try {
+            // Fetch complete activity data from API
+            const actividadCompleta = await fetchById(actividad.id_actividad);
+            setExpandedActividad(actividadCompleta);
+        } catch (error) {
+            logger.error('Error fetching activity details:', error);
+            setAlertDialog({
+                title: 'Error',
+                message: 'No se pudo cargar los detalles de la actividad',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleEditar = async (actividad) => {
         setExpandedActividad(null); // Cerramos el detalle expandido
-        setActividadEditar(actividad);
+
+        if (!actividad || !actividad.id_actividad) {
+            logger.error("Error: actividad sin ID para editar", actividad);
+            return;
+        }
+
+        try {
+            // Fetch complete activity data from API
+            const actividadCompleta = await fetchById(actividad.id_actividad);
+            setActividadEditar(actividadCompleta);
+        } catch (error) {
+            logger.error('Error fetching activity for edit:', error);
+            setAlertDialog({
+                title: 'Error',
+                message: 'No se pudo cargar los detalles de la actividad para editar',
+                type: 'error'
+            });
+        }
     };
 
     const handleCloseModal = () => {
@@ -215,8 +264,8 @@ const Actividades = () => {
             message: 'La actividad se ha actualizado exitosamente',
             type: 'success'
         });
-        // Refresh search results
-        handleSearch();
+        // Refresh search results preserving current page
+        performSearch(filtros, paginaActual);
     };
 
     const handleEliminar = (actividad) => {
@@ -290,14 +339,14 @@ const Actividades = () => {
             ) : (
                 <>
                     <div className="actividades-grid">
-                        {actividadesPaginadas.map((actividad) => (
+                        {actividadesFiltradas.map((actividad) => (
                             <ActivityCard
                                 key={actividad.id_actividad}
                                 actividad={actividad}
                                 isLoggedIn={isLoggedIn}
                                 isAdmin={isAdmin}
                                 estaInscripto={estaInscripto}
-                                onToggleExpand={setExpandedActividad}
+                                onToggleExpand={handleToggleExpand}
                                 onEditar={handleEditar}
                                 onEliminar={handleEliminar}
                                 onEnroling={handleEnroling}
@@ -306,29 +355,27 @@ const Actividades = () => {
                         ))}
                     </div>
 
-                    {actividadesFiltradas.length > ITEMS_POR_PAGINA && (
-                        <div className="pagination-controls">
-                            <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
-                                Página {paginaActual} de {totalPaginas}
-                            </span>
-                            <button
-                                className="pagination-button"
-                                onClick={handlePrevPage}
-                                disabled={paginaActual === 1}
-                                aria-label="Página anterior"
-                            >
-                                ← Anterior
-                            </button>
-                            <button
-                                className="pagination-button"
-                                onClick={handleNextPage}
-                                disabled={paginaActual === totalPaginas}
-                                aria-label="Página siguiente"
-                            >
-                                Siguiente →
-                            </button>
-                        </div>
-                    )}
+                    <div className="pagination-controls">
+                        <span style={{ padding: '0.5rem 1rem', color: '#2c3e50', fontWeight: '500' }}>
+                            Página {paginaActual} de {totalPaginas}
+                        </span>
+                        <button
+                            className="pagination-button"
+                            onClick={handlePrevPage}
+                            disabled={paginaActual === 1}
+                            aria-label="Página anterior"
+                        >
+                            ← Anterior
+                        </button>
+                        <button
+                            className="pagination-button"
+                            onClick={handleNextPage}
+                            disabled={paginaActual === totalPaginas}
+                            aria-label="Página siguiente"
+                        >
+                            Siguiente →
+                        </button>
+                    </div>
                 </>
             )}
 

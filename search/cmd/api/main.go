@@ -54,7 +54,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	router.GET("/activitys", activityController.List)
+	router.GET("/activities", activityController.List)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -64,7 +64,7 @@ func main() {
 
 	log.Printf("🚀 API listening on port %s", cfg.Port)
 	log.Printf("📊 Health check: http://localhost:%s/healthz", cfg.Port)
-	log.Printf("📚 Activitys API: http://localhost:%s/activitys", cfg.Port)
+	log.Printf("📚 Activitys API: http://localhost:%s/activities", cfg.Port)
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)

@@ -13,12 +13,10 @@ const ActivityCard = ({
 }) => {
     return (
         <div className="actividad-card">
-            <h3>{actividad.titulo}</h3>
+            <h3 style={{ fontWeight: 'bold' }}>{actividad.titulo}</h3>
             <div className="actividad-info-basic">
-                <p>Instructor: {actividad.instructor || "No especificado"}</p>
-                <p>
-                    Horario: {actividad.hora_inicio} a {actividad.hora_fin}
-                </p>
+                <p style={{ fontStyle: 'italic' }}>{actividad.descripcion}</p>
+                <p>Día: {actividad.dia || "No especificado"}</p>
             </div>
 
             <div className="card-actions">

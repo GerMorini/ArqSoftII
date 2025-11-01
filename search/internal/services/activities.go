@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"search/internal/dto"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ActivityEvent struct {
@@ -43,7 +45,29 @@ func NewActivitiesService(localCache ActivitiesRepository, cache ActivitiesRepos
 }
 
 func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilters) (dto.PaginatedResponse, error) {
-	return s.search.List(ctx, filters)
+	// TODO: si no lo encuentra en caché la idea sería consultar actividades para obtenerla y cachearla
+	result, err := s.localCache.List(ctx, filters)
+	if err == nil {
+		log.Infof("cache hit en localcache")
+		return result, nil
+	}
+	log.Warnf("no se encontro actividad en cache local")
+
+	result, err = s.cache.List(ctx, filters)
+	if err == nil {
+		log.Infof("cache hit en memcache")
+		return result, nil
+	}
+	log.Warnf("no se encontro actividad en memcache")
+
+	result, err = s.search.List(ctx, filters)
+	if err == nil {
+		log.Infof("actividad buscada exitosamente en solr")
+		return result, err
+	}
+	log.Warnf("no se encontro actividad en solr")
+
+	return dto.PaginatedResponse{}, err
 }
 
 func (s *ActiviesServiceImpl) InitConsumer(ctx context.Context) {

@@ -5,7 +5,6 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DIAS_SEMANA } from '../constants/actividadConstants';
 import { actividadService } from '../services/actividadService';
 import logger from '../utils/logger';
-import useCurrentUser from '../hooks/useCurrentUser';
 
 const ActivityFormModal = ({ mode = 'create', actividad = null, onClose, onSave, inscriptionsEdit = false}) => {
     const [formData, setFormData] = useState({

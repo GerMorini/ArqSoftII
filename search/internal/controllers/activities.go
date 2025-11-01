@@ -20,12 +20,12 @@ type ItemsController struct {
 
 const (
 	listDefaultPage  = 1
-	listDefaultCount = 10
+	listDefaultCount = 9
 )
 
-func NewActivitiesController(activitysService ItemsService) *ItemsController {
+func NewActivitiesController(activitiesService ItemsService) *ItemsController {
 	return &ItemsController{
-		service: activitysService,
+		service: activitiesService,
 	}
 }
 
@@ -66,7 +66,7 @@ func (c *ItemsController) List(ctx *gin.Context) {
 	if err != nil {
 		log.Errorf("error al realizar busqueda: %s", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to fetch activitys",
+			"error":   "Failed to fetch activities",
 			"details": err.Error(),
 		})
 		return

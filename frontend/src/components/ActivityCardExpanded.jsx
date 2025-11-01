@@ -1,5 +1,6 @@
 import '../styles/ActivityCardExpanded.css';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import logoGym from '../../img/icon-gym2.png';
 
 const ActivityCardExpanded = ({ actividad, onClose }) => {
     useEscapeKey(onClose);
@@ -23,8 +24,9 @@ const ActivityCardExpanded = ({ actividad, onClose }) => {
                 <div className="activity-expanded-content">
                     <div className="activity-expanded-image">
                         <img
-                            src={actividad.foto_url}
+                            src={actividad.foto_url || logoGym}
                             alt={actividad.titulo}
+                            onError={(e) => { e.target.src = logoGym; }}
                         />
                     </div>
 

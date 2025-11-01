@@ -14,39 +14,28 @@ export const searchService = {
       if (filters.page) params.append('page', filters.page);
       if (filters.count) params.append('count', filters.count);
 
-      const response = await fetch(`${API_URL}/activitys?${params.toString()}`);
+      const response = await fetch(`${API_URL}/activities?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data = await response.json();
+
+      // Map 'id' to 'id_actividad' for each result to match frontend expectations
+      if (data.results && Array.isArray(data.results)) {
+        data.results = data.results.map(activity => ({
+          ...activity,
+          id_actividad: activity.id
+        }));
+      }
+
       return data;
     } catch (error) {
       console.error('Error searching activities:', error);
       throw error;
     }
   },
-
-  // Get activity by ID
-  getActivityById: async (id) => {
-    try {
-      const response = await fetch(`${API_URL}/activitys/${id}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Activity not found');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching activity:', error);
-      throw error;
-    }
-  }
 };
 
 export default searchService;

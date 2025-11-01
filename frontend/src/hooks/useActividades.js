@@ -13,6 +13,22 @@ export function useActividades(usuarioId = null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const fetchById = useCallback(async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await actividadService.getActividadById(id);
+      return data;
+    } catch (err) {
+      const errorMessage = err.message || 'Error desconocido al cargar actividad';
+      setError(errorMessage);
+      logger.error('useActividades - fetch by id error', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   /**
    * Cargar todas las actividades
    */
@@ -131,6 +147,7 @@ export function useActividades(usuarioId = null) {
     inscripciones,
     loading,
     error,
+    fetchById,
     fetchActividades,
     fetchInscripciones,
     createActividad,
