@@ -21,8 +21,10 @@ func main() {
 	userService := services.NewUsersService(usersMySQLRepo, cfg.JwtSecret)
 	userController := controllers.NewUsersController(&userService)
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
 	router.Use(middleware.CORSMiddleware)
+	router.Use(middleware.LoggerMiddleware())
 
 	router.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

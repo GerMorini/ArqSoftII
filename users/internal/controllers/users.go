@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -8,7 +10,6 @@ import (
 	"users/internal/services"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -26,27 +27,26 @@ func (c *UsersController) Login(ctx *gin.Context) {
 	var loginDTO dto.UserLoginDTO
 
 	if err := ctx.BindJSON(&loginDTO); err != nil {
-		log.Warnf("error al parsear body al loggear usuaro: %v\n", err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
+		ctx.Error(fmt.Errorf("error al parsear body al loggear usuaro: %v", err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
 		return
 	}
 
 	token, err := c.service.Login(loginDTO)
 	if err != nil {
 		if err == services.ErrIncorrectCredentials || strings.Contains(err.Error(), "record not found") {
-			log.Warnf("contraseña incorrecta para el usuario:\nusername: %s\nemail: %s\npassword: %s\n", loginDTO.Username, loginDTO.Email, loginDTO.Password)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Credenciales incorrectas"})
+			ctx.Error(fmt.Errorf("contraseña incorrecta para el usuario: username=%s email=%s", loginDTO.Username, loginDTO.Email))
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales incorrectas"})
 		} else if err == services.ErrLoginFormat {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		} else {
-			log.Errorf("error al realizar login de usuario: %s", err.Error())
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
+			ctx.Error(fmt.Errorf("error al realizar login de usuario: %s", err.Error()))
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
 			return
 		}
 		return
 	}
 
-	log.Infof("usuario loggeado\nusername: %s\npassword: %s\n", loginDTO.Username, loginDTO.Password)
 	ctx.JSON(http.StatusCreated, gin.H{
 		"access_token": token,
 		"token_type":   "bearer",
@@ -58,20 +58,20 @@ func (c *UsersController) Create(ctx *gin.Context) {
 	var datos dto.UserMinDTO
 
 	if err := ctx.BindJSON(&datos); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
-		log.Warnf("no se pudo procesar la petición del usuario: %s\nLoginDTO: %v", err.Error(), datos)
+		ctx.Error(fmt.Errorf("no se pudo procesar la petición del usuario: %s", err.Error()))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
 		return
 	}
 
 	_, err := c.service.Create(datos)
 	if err != nil {
-		log.Warnf("error al registrar un usuario: %s\nDTO: %v", err.Error(), datos)
+		ctx.Error(fmt.Errorf("error al registrar un usuario: %s", err.Error()))
 
 		errString := strings.ToLower(err.Error())
 		if strings.Contains(errString, "error 1062") {
-			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "El usuario ya está registrado"})
+			ctx.JSON(http.StatusConflict, gin.H{"error": "El usuario ya está registrado"})
 		} else {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error al registrarse"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrarse"})
 		}
 
 		return
@@ -83,12 +83,11 @@ func (c *UsersController) Create(ctx *gin.Context) {
 		Password: datos.Password,
 	})
 	if err != nil {
-		log.Errorf("error al loggear al usuario despues de registrarse: %v\n", err)
+		ctx.Error(fmt.Errorf("error al loggear al usuario despues de registrarse: %v", err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ocurrio un error en el servidor"})
 		return
 	}
 
-	log.Infof("usuario registrado exitosamente: %v", datos)
 	ctx.JSON(http.StatusCreated, gin.H{
 		"access_token": token,
 		"token_type":   "bearer",
@@ -101,31 +100,30 @@ func (c *UsersController) GetByID(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		log.Warnf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		ctx.Error(fmt.Errorf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error()))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
 		return
 	}
 
 	userData, err := c.service.GetByID(id)
 	if err != nil {
-		log.Warnf("error al buscar un usuario por su ID: %v", err)
+		ctx.Error(fmt.Errorf("error al buscar un usuario por su ID: %v", err))
 		if err == gorm.ErrRecordNotFound {
-			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
 			return
 		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al buscar usuario"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error al buscar usuario"})
 		return
 	}
 
-	log.Infof("usuario obtenido exitosamente: %v", userData)
 	ctx.JSON(http.StatusOK, userData)
 }
 
 func (c *UsersController) GetAll(ctx *gin.Context) {
 	usuarios, err := c.service.GetAll()
 	if err != nil {
-		log.Errorf("error al obtener todos los usuarios: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al obtener usuarios"})
+		ctx.Error(fmt.Errorf("error al obtener todos los usuarios: %v", err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error al obtener usuarios"})
 		return
 	}
 
@@ -137,30 +135,29 @@ func (c *UsersController) Update(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		log.Warnf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		ctx.Error(fmt.Errorf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error()))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
 		return
 	}
 
 	var updateDTO dto.UserUpdateDTO
 	if err := ctx.BindJSON(&updateDTO); err != nil {
-		log.Warnf("error al parsear body al actualizar usuario: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
+		ctx.Error(fmt.Errorf("error al parsear body al actualizar usuario: %v", err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Datos con formato incorrecto"})
 		return
 	}
 
 	userData, err := c.service.Update(id, updateDTO)
 	if err != nil {
-		log.Warnf("error al actualizar usuario con ID %d: %v", id, err)
+		ctx.Error(fmt.Errorf("error al actualizar usuario con ID %d: %v", id, err))
 		if err == gorm.ErrRecordNotFound {
-			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
 			return
 		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al actualizar usuario"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error al actualizar usuario"})
 		return
 	}
 
-	log.Infof("usuario actualizado exitosamente: %v", userData)
 	ctx.JSON(http.StatusOK, userData)
 }
 
@@ -169,19 +166,18 @@ func (c *UsersController) Delete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
-		log.Warnf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
+		ctx.Error(fmt.Errorf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error()))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID con formato incorrecto. Debe ser un número"})
 		return
 	}
 
 	err = c.service.Delete(id)
 	if err != nil {
-		log.Warnf("error al eliminar usuario con ID %d: %v", id, err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error al eliminar usuario"})
+		ctx.Error(fmt.Errorf("error al eliminar usuario con ID %d: %v", id, err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error al eliminar usuario"})
 		return
 	}
 
-	log.Infof("usuario con ID %d eliminado exitosamente", id)
 	ctx.JSON(http.StatusOK, gin.H{"message": "usuario eliminado exitosamente"})
 }
 
@@ -190,23 +186,22 @@ func (c *UsersController) IsAdmin(ctx *gin.Context) {
 	if token != "" {
 		token = strings.TrimPrefix(token, "Bearer ")
 	} else {
-		log.Warnf("usuario sin autorizacion: no se especifico header 'Authorization'")
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "se necesita especificar el campo 'Authorization'"})
+		ctx.Error(errors.New("usuario sin autorizacion: no se especifico header 'Authorization'"))
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "se necesita especificar el campo 'Authorization'"})
 		return
 	}
 
 	bool, err := c.service.IsAdmin(token)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "se necesita autenticación válida"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "se necesita autenticación válida"})
 		return
 	}
 
 	if !bool {
-		log.Warnf("validacion negativa para token %s", token)
-		ctx.AbortWithStatus(http.StatusForbidden)
+		ctx.Error(errors.New("validacion negativa"))
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
-	log.Infof("validacion como admin exitosa para el token: %s", token)
 	ctx.Status(http.StatusOK)
 }
