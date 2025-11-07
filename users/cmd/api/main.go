@@ -35,8 +35,8 @@ func main() {
 	router.POST("/register", userController.Create)
 	router.POST("/login", userController.Login)
 	router.GET("/auth", userController.IsAdmin)
-	router.PUT("/users/:id", userController.Update)
-	router.DELETE("/users/:id", userController.Delete)
+	router.PUT("/users/:id", middleware.AuthMiddleware(cfg.JwtSecret), userController.Update)
+	router.DELETE("/users/:id", middleware.AuthMiddleware(cfg.JwtSecret), userController.Delete)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

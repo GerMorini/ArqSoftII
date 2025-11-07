@@ -10,6 +10,8 @@ import (
 	"users/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -21,6 +23,34 @@ func NewUsersController(usersService services.UsersService) *UsersController {
 	return &UsersController{
 		service: usersService,
 	}
+}
+
+// Helpers functions
+func getClaimsFromContext(c *gin.Context) (jwt.MapClaims, bool) {
+	v, ok := c.Get("claims")
+	if !ok {
+		return nil, false
+	}
+	claims, ok := v.(jwt.MapClaims)
+	return claims, ok
+}
+func isAdminFromClaims(claims jwt.MapClaims) bool {
+	if claims == nil {
+		return false
+	}
+	if adm, ok := claims["is_admin"]; ok {
+		switch v := adm.(type) {
+		case bool:
+			return v
+		case float64:
+			return v != 0
+		case int:
+			return v != 0
+		case string:
+			return v == "true" || v == "1"
+		}
+	}
+	return false
 }
 
 func (c *UsersController) Login(ctx *gin.Context) {
@@ -133,6 +163,19 @@ func (c *UsersController) GetAll(ctx *gin.Context) {
 func (c *UsersController) Update(ctx *gin.Context) {
 	id_str := ctx.Param("id")
 
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		log.Warnf("token sin claims")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		log.Warnf("operacion sin privilegios para el usuario: %s@%s", claims["username"], ctx.RemoteIP())
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update activities"})
+		return
+	}
+
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
 		ctx.Error(fmt.Errorf("no se pudo obtener el ID del parámetro de la consulta: %s", err.Error()))
@@ -163,6 +206,19 @@ func (c *UsersController) Update(ctx *gin.Context) {
 
 func (c *UsersController) Delete(ctx *gin.Context) {
 	id_str := ctx.Param("id")
+
+	//admin only
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		log.Warnf("token sin claims")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
+		return
+	}
+	if !isAdminFromClaims(claims) {
+		log.Warnf("operacion sin privilegios para el usuario: %s@%s", claims["username"], ctx.RemoteIP())
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update activities"})
+		return
+	}
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {

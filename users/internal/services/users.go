@@ -21,7 +21,6 @@ type UsersService interface {
 	Update(id int, updateDTO dto.UserUpdateDTO) (dto.UserDTO, error)
 	Delete(id int) error
 	IsAdmin(token string) (bool, error)
-
 	GenerateToken(userdata dao.User) (string, error)
 	GetClaimsFromToken(tokenString string) (jwt.MapClaims, error)
 }
