@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -194,9 +195,129 @@ func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// Inscribir registra al usuario en la actividad
+// Inscribir registra al usuario en la actividad usando cálculo concurrente
 func (s *ActivitiesServiceImpl) Inscribir(ctx context.Context, id string, userID string) (string, error) {
-	return s.repository.Inscribir(ctx, id, userID)
+	log.Infof(" Starting concurrent inscription process for user %s in activity %s", userID, id)
+
+	// Crear channel para comunicar resultados entre goroutines
+	type validationResult struct {
+		step  string
+		valid bool
+		err   error
+	}
+	resultsChan := make(chan validationResult, 3)
+
+	// WaitGroup para sincronizar las goroutines
+	var wg sync.WaitGroup
+
+	// Goroutine 1: Validar que la actividad existe y obtener sus datos
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Info("⚙️ Goroutine 1: Validating activity existence...")
+
+		activity, err := s.repository.GetByID(ctx, id)
+		if err != nil {
+			log.Errorf(" Goroutine 1: Activity %s not found", id)
+			resultsChan <- validationResult{step: "activity_validation", valid: false, err: err}
+			return
+		}
+
+		log.Infof(" Goroutine 1: Activity %s validated successfully", activity.Nombre)
+		resultsChan <- validationResult{step: "activity_validation", valid: true, err: nil}
+	}()
+
+	// Goroutine 2: Validar que el usuario no esté ya inscrito
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Info(" Goroutine 2: Checking if user is already enrolled...")
+
+		inscripciones, err := s.repository.GetInscripcionesByUserID(ctx, userID)
+		if err != nil {
+			log.Errorf(" Goroutine 2: Error getting user inscriptions: %v", err)
+			resultsChan <- validationResult{step: "user_validation", valid: false, err: err}
+			return
+		}
+
+		// Verificar si ya está inscrito
+		for _, inscID := range inscripciones {
+			if inscID == id {
+				log.Warnf(" Goroutine 2: User %s is already enrolled in activity %s", userID, id)
+				resultsChan <- validationResult{
+					step:  "user_validation",
+					valid: false,
+					err:   fmt.Errorf("user is already enrolled in this activity"),
+				}
+				return
+			}
+		}
+
+		log.Infof("Goroutine 2: User %s is not enrolled yet", userID)
+		resultsChan <- validationResult{step: "user_validation", valid: true, err: nil}
+	}()
+
+	// Goroutine 3: Validar capacidad disponible
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Info("⚙️ Goroutine 3: Checking activity capacity...")
+
+		activity, err := s.repository.GetByID(ctx, id)
+		if err != nil {
+			log.Errorf(" Goroutine 3: Error getting activity: %v", err)
+			resultsChan <- validationResult{step: "capacity_validation", valid: false, err: err}
+			return
+		}
+
+		currentEnrolled := len(activity.UsersInscribed)
+		if currentEnrolled >= activity.CapacidadMax {
+			log.Warnf(" Goroutine 3: Activity %s is full (%d/%d)", id, currentEnrolled, activity.CapacidadMax)
+			resultsChan <- validationResult{
+				step:  "capacity_validation",
+				valid: false,
+				err:   fmt.Errorf("activity is full (capacity: %d)", activity.CapacidadMax),
+			}
+			return
+		}
+
+		log.Infof(" Goroutine 3: Activity has space available (%d/%d)", currentEnrolled, activity.CapacidadMax)
+		resultsChan <- validationResult{step: "capacity_validation", valid: true, err: nil}
+	}()
+
+	// Cerrar el channel cuando todas las goroutines terminen
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+		log.Info(" All goroutines completed")
+	}()
+
+	// Recolectar resultados del channel
+	validations := make(map[string]validationResult)
+	for result := range resultsChan {
+		validations[result.step] = result
+		log.Infof(" Received result from %s: valid=%v", result.step, result.valid)
+	}
+
+	// Verificar que todas las validaciones pasaron
+	for step, result := range validations {
+		if !result.valid {
+			log.Errorf(" Validation failed at step '%s': %v", step, result.err)
+			return "", fmt.Errorf("inscription validation failed: %w", result.err)
+		}
+	}
+
+	log.Info("All concurrent validations passed, proceeding with inscription...")
+
+	// Si todas las validaciones pasaron, realizar la inscripción
+	message, err := s.repository.Inscribir(ctx, id, userID)
+	if err != nil {
+		log.Errorf(" Error during inscription in repository: %v", err)
+		return "", fmt.Errorf("error inscribing user: %w", err)
+	}
+
+	log.Infof(" User %s successfully enrolled in activity %s", userID, id)
+	return message, nil
 }
 
 // Desinscribir quita al usuario de la actividad

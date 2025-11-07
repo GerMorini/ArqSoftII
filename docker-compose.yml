@@ -71,7 +71,7 @@ services:
       - RABBITMQ_PASS=${RABBITMQ_PASS:-admin}
       - RABBITMQ_HOST=rabbit-search-api
       - RABBITMQ_PORT=5672
-      - RABBITMQ_QUEUE_NAME=${RABBITMQ_QUEUE_NAME:-items}
+      - RABBITMQ_QUEUE_NAME=${RABBITMQ_QUEUE_NAME:-items-news}
     env_file:
       - .env
     depends_on:
@@ -110,17 +110,28 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-  # ==================== Search API ====================
+# ==================== Search API ====================
   search-api:
     container_name: search-api
     build:
       context: ./search
       dockerfile: Dockerfile
     ports:
-      - "8082:8080"
-    env_file:
-      - .env
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - MEMCACHED_HOST=memcached-search-api
+      - MEMCACHED_PORT=11211
+      - MEMCACHED_TTL_SECONDS=60
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=admin
+      - RABBITMQ_QUEUE_NAME=items-news
+      - RABBITMQ_HOST=rabbit-search-api
+      - RABBITMQ_PORT=5672
+      - SOLR_HOST=solr-search-api
+      - SOLR_PORT=8983
+      - SOLR_CORE=demo
+      - ACTIVITIES_API_URL=http://activities-api:8080
     depends_on:
       rabbit-search-api:
         condition: service_healthy
@@ -131,7 +142,7 @@ services:
     networks:
       - microservices
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -141,7 +152,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
   # ==================== Memcached ====================
   memcached-search-api:
     image: memcached:1.6-alpine
