@@ -218,10 +218,6 @@ services:
       - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL:-http://localhost:8081}
       - VITE_SEARCH_URL=${VITE_SEARCH_URL:-http://localhost:8082}
       - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-INFO}
-    depends_on:
-      - users-api
-      - activities-api
-      - search-api
     networks:
       - microservices
     healthcheck:
