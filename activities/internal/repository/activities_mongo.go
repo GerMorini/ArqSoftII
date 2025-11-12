@@ -338,3 +338,27 @@ func (r *MongoActivitiesRepository) GetInscripcionesByUserID(ctx context.Context
 	}
 	return activityIDs, nil
 }
+
+// ListAllForAdmin retrieves all activities with full administration data (including UsersInscribed)
+func (r *MongoActivitiesRepository) ListAllForAdmin(ctx context.Context) ([]dto.ActivityAdministration, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	cur, err := r.col.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var daoActivities []dao.ActivityDAO
+	if err := cur.All(ctx, &daoActivities); err != nil {
+		return nil, err
+	}
+
+	dtoActivities := make([]dto.ActivityAdministration, len(daoActivities))
+	for i, daoAct := range daoActivities {
+		dtoActivities[i] = dao.ToDomainAdministration(daoAct)
+	}
+
+	return dtoActivities, nil
+}

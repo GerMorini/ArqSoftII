@@ -21,6 +21,18 @@ const FilterBar = ({
                 <legend className="sr-only">Filtrar actividades</legend>
 
                 <div className="filter-inputs-row">
+                    {/* Botón Limpiar Filtros */}
+                    {tieneFlltrosActivos && (
+                        <button
+                            onClick={onLimpiar}
+                            className="filter-btn-clear"
+                            aria-label="Limpiar todos los filtros"
+                            title="Limpiar"
+                        >
+                            Limpiar ✖️
+                        </button>
+                    )}
+
                     {/* Búsqueda */}
                     <div className="filter-group search-group">
                         <label htmlFor="busqueda" className="sr-only">
@@ -37,18 +49,6 @@ const FilterBar = ({
                             aria-label="Buscar actividades por título"
                         />
                     </div>
-
-                    {/* Botón Limpiar Filtros */}
-                    {tieneFlltrosActivos && (
-                        <button
-                            onClick={onLimpiar}
-                            className="filter-btn-clear"
-                            aria-label="Limpiar todos los filtros"
-                            title="Limpiar"
-                        >
-                            Limpiar ✖️
-                        </button>
-                    )}
 
                     {/* Filtro de descripción */}
                     <div className="filter-group">

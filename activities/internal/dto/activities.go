@@ -24,3 +24,20 @@ type ActivityAdministration struct {
 }
 
 type ActivitiesAdministrations []ActivityAdministration
+
+type DayDistribution struct {
+	Dia   string `json:"dia"`
+	Count int    `json:"count"`
+}
+
+type ActivityStatistics struct {
+	TotalActivities       int                `json:"total_actividades"`
+	TotalEnrollments      int                `json:"total_inscripciones"`
+	AverageEnrollmentRate float64            `json:"tasa_promedio_inscripcion"`
+	TotalCapacity         int                `json:"capacidad_total"`
+	CapacityUtilization   float64            `json:"utilizacion_capacidad"`
+	ActivitiesByDay       []DayDistribution  `json:"actividades_por_dia"`
+	MostPopularActivity   *Activity          `json:"actividad_mas_popular"`
+	FullActivitiesCount   int                `json:"actividades_llenas"`
+	AvailableActivities   int                `json:"actividades_disponibles"`
+}

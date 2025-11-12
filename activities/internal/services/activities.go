@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -21,6 +22,7 @@ type ActivitiesRepository interface {
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
+	ListAllForAdmin(ctx context.Context) ([]dto.ActivityAdministration, error)
 }
 
 // ActivitiesService define la capa de servicios usada por controllers
@@ -34,6 +36,7 @@ type ActivitiesService interface {
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
+	GetStatistics(ctx context.Context) (dto.ActivityStatistics, error)
 }
 
 // RabbitMQPublisher interface para publicar eventos
@@ -237,11 +240,153 @@ func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) e
 		return errors.New("diaSemana must be a valid day of the week (e.g., Lunes, Martes, etc.)")
 	}
 
-	// Más validaciones pueden agregarse aquí (horarios, profesor, etc.)
 	return nil
 }
 
 // GetInscripcionesByUserID obtiene las actividades inscritas por un usuario
 func (s *ActivitiesServiceImpl) GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error) {
 	return s.repository.GetInscripcionesByUserID(ctx, userID)
+}
+
+// GetStatistics calcula estadísticas de actividades usando concurrencia
+// Este método demuestra el uso de goroutines, channels y WaitGroups
+func (s *ActivitiesServiceImpl) GetStatistics(ctx context.Context) (dto.ActivityStatistics, error) {
+	// Obtener todas las actividades con datos completos (incluye UsersInscribed)
+	activities, err := s.repository.ListAllForAdmin(ctx)
+	if err != nil {
+		log.WithError(err).Error("Error fetching activities for statistics")
+		return dto.ActivityStatistics{}, err
+	}
+
+	totalEnrollmentsChan := make(chan int)
+	capacityUtilizationChan := make(chan float64)
+	dayDistributionChan := make(chan []dto.DayDistribution)
+	mostPopularChan := make(chan *dto.Activity)
+	fullActivitiesChan := make(chan int)
+
+	var wg sync.WaitGroup
+
+	// Goroutine 1: Calcular total de inscripciones y capacidad total
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		totalEnrollments := 0
+		totalCapacity := 0
+
+		for _, act := range activities {
+			totalEnrollments += len(act.UsersInscribed)
+			totalCapacity += act.CapacidadMax
+		}
+
+		// Calcular utilización de capacidad
+		var utilization float64
+		if totalCapacity > 0 {
+			utilization = (float64(totalEnrollments) / float64(totalCapacity)) * 100
+		}
+
+		totalEnrollmentsChan <- totalEnrollments
+		capacityUtilizationChan <- utilization
+	}()
+
+	// Goroutine 2: Calcular distribución por día de la semana
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dayCount := make(map[string]int)
+
+		for _, act := range activities {
+			dayCount[act.DiaSemana]++
+		}
+
+		distribution := []dto.DayDistribution{}
+		for day, count := range dayCount {
+			distribution = append(distribution, dto.DayDistribution{
+				Dia:   day,
+				Count: count,
+			})
+		}
+
+		dayDistributionChan <- distribution
+	}()
+
+	// Goroutine 3: Encontrar actividad más popular
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var mostPopular *dto.Activity
+		maxEnrollments := -1
+
+		for _, act := range activities {
+			if len(act.UsersInscribed) > maxEnrollments {
+				maxEnrollments = len(act.UsersInscribed)
+				activity := act.Activity // Copy the embedded Activity struct
+				mostPopular = &activity
+			}
+		}
+
+		mostPopularChan <- mostPopular
+	}()
+
+	// Goroutine 4: Contar actividades llenas vs disponibles
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fullCount := 0
+
+		for _, act := range activities {
+			if len(act.UsersInscribed) >= act.CapacidadMax {
+				fullCount++
+			}
+		}
+
+		fullActivitiesChan <- fullCount
+	}()
+
+	// Goroutine para cerrar channels después de que todas las goroutines terminen
+	go func() {
+		wg.Wait()
+		close(totalEnrollmentsChan)
+		close(capacityUtilizationChan)
+		close(dayDistributionChan)
+		close(mostPopularChan)
+		close(fullActivitiesChan)
+	}()
+
+	totalEnrollments := <-totalEnrollmentsChan
+	capacityUtilization := <-capacityUtilizationChan
+	dayDistribution := <-dayDistributionChan
+	mostPopular := <-mostPopularChan
+	fullActivities := <-fullActivitiesChan
+
+	// Calcular tasa promedio de inscripción
+	var avgEnrollmentRate float64
+	if len(activities) > 0 {
+		avgEnrollmentRate = float64(totalEnrollments) / float64(len(activities))
+	}
+
+	// Construir el resultado
+	stats := dto.ActivityStatistics{
+		TotalActivities:       len(activities),
+		TotalEnrollments:      totalEnrollments,
+		AverageEnrollmentRate: avgEnrollmentRate,
+		TotalCapacity:         0, // Will be calculated below
+		CapacityUtilization:   capacityUtilization,
+		ActivitiesByDay:       dayDistribution,
+		MostPopularActivity:   mostPopular,
+		FullActivitiesCount:   fullActivities,
+		AvailableActivities:   len(activities) - fullActivities,
+	}
+
+	// Calculate total capacity
+	for _, act := range activities {
+		stats.TotalCapacity += act.CapacidadMax
+	}
+
+	log.WithFields(log.Fields{
+		"total_activities":  stats.TotalActivities,
+		"total_enrollments": stats.TotalEnrollments,
+		"full_activities":   stats.FullActivitiesCount,
+	}).Info("Statistics calculated successfully")
+
+	return stats, nil
 }

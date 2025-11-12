@@ -362,6 +362,35 @@ export const actividadService = {
   },
 
   /**
+   * Obtener estadísticas de actividades (solo admin)
+   */
+  async getStatistics() {
+    try {
+      logger.info('Fetching activity statistics');
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${ACTIVITIES_URL}/activities/statistics`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorMessage = await extractErrorMessage(response, 'Error al obtener estadísticas');
+        logger.logApiError('/activities/statistics', response.status, errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      logger.info('Estadísticas obtenidas exitosamente', { totalActivities: data.total_actividades });
+      return data;
+    } catch (error) {
+      logger.error('Error al obtener estadísticas', error);
+      throw error;
+    }
+  },
+
+  /**
    * Validar formulario de actividades
    */
   validateActividadForm,
@@ -371,3 +400,6 @@ export const actividadService = {
    */
   hasValidationErrors,
 };
+
+// Named export for getStatistics
+export const getStatistics = actividadService.getStatistics;

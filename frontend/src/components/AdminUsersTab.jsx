@@ -193,6 +193,16 @@ const AdminUsersTab = () => {
                     <fieldset className="filter-fieldset">
                         <legend className="sr-only">Filtrar usuarios</legend>
                         <div className="filter-inputs-row">
+                            {(filtrosUsuarios.busqueda || filtrosUsuarios.email || filtrosUsuarios.username || filtrosUsuarios.isAdmin !== '') && (
+                                <button
+                                    onClick={handleLimpiarFiltrosUsuarios}
+                                    className="filter-btn-clear"
+                                    title="Limpiar"
+                                >
+                                    Limpiar ✖️
+                                </button>
+                            )}
+
                             <div className="filter-group search-group">
                                 <label htmlFor="busqueda-usuarios" className="sr-only">
                                     Buscar por nombre
@@ -207,16 +217,6 @@ const AdminUsersTab = () => {
                                     className="filter-input"
                                 />
                             </div>
-
-                            {(filtrosUsuarios.busqueda || filtrosUsuarios.email || filtrosUsuarios.username || filtrosUsuarios.isAdmin !== '') && (
-                                <button
-                                    onClick={handleLimpiarFiltrosUsuarios}
-                                    className="filter-btn-clear"
-                                    title="Limpiar"
-                                >
-                                    Limpiar ✖️
-                                </button>
-                            )}
 
                             <div className="filter-group">
                                 <label htmlFor="email-usuarios" className="sr-only">

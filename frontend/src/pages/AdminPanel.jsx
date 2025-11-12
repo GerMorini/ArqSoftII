@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminActivitiesTab from '../components/AdminActivitiesTab';
 import AdminUsersTab from '../components/AdminUsersTab';
+import AdminStatisticsTab from '../components/AdminStatisticsTab';
 import useCurrentUser from '../hooks/useCurrentUser';
 import '../styles/AdminPanel.css';
 
@@ -33,11 +34,18 @@ const AdminPanel = () => {
                     >
                         Usuarios
                     </button>
+                    <button
+                        className={`tab-button ${tabActiva === 'estadisticas' ? 'active' : ''}`}
+                        onClick={() => setTabActiva('estadisticas')}
+                    >
+                        Estadísticas
+                    </button>
                 </div>
             </div>
 
             {tabActiva === 'actividades' && <AdminActivitiesTab />}
             {tabActiva === 'usuarios' && <AdminUsersTab />}
+            {tabActiva === 'estadisticas' && <AdminStatisticsTab />}
         </div>
     );
 };

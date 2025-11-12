@@ -93,7 +93,7 @@
 }
 
 /* Alert Button */
-.alert-btn {
+.alert-dialog .alert-btn {
     padding: 0.75rem 2rem;
     border: none;
     border-radius: 4px;
@@ -104,40 +104,40 @@
     min-width: 120px;
 }
 
-.alert-btn.success {
+.alert-dialog .alert-btn.success {
     background-color: #4CAF50;
     color: white;
 }
 
-.alert-btn.success:hover {
+.alert-dialog .alert-btn.success:hover {
     background-color: #45a049;
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
-.alert-btn.error {
+.alert-dialog .alert-btn.error {
     background-color: #ff6b6b;
     color: white;
 }
 
-.alert-btn.error:hover {
+.alert-dialog .alert-btn.error:hover {
     background-color: #ff5252;
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
 }
 
-.alert-btn.info {
+.alert-dialog .alert-btn.info {
     background-color: #4a9eff;
     color: white;
 }
 
-.alert-btn.info:hover {
+.alert-dialog .alert-btn.info:hover {
     background-color: #2980ff;
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
 }
 
-.alert-btn:active {
+.alert-dialog .alert-btn:active {
     transform: translateY(0);
 }
 
@@ -164,7 +164,7 @@
         font-size: 0.9rem;
     }
 
-    .alert-btn {
+    .alert-dialog .alert-btn {
         width: 100%;
         min-width: auto;
     }

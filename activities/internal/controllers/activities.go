@@ -22,6 +22,7 @@ type ActivitiesService interface {
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
+	GetStatistics(ctx context.Context) (dto.ActivityStatistics, error)
 }
 
 // ActivitiesController maneja las peticiones HTTP para Activities
@@ -510,4 +511,33 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 
 	log.Infof("actividades inscritas obtenidas exitosamente para usuario %s: %d actividades", userID, len(activities))
 	ctx.JSON(http.StatusOK, gin.H{"activities": activities, "count": len(activities)})
+}
+
+// GetStatistics obtiene estadísticas de actividades (solo admin)
+func (c *ActivitiesController) GetStatistics(ctx *gin.Context) {
+	// Validar autenticación
+	claims, ok := getClaimsFromContext(ctx)
+	if !ok {
+		log.Warn("no se pudieron obtener claims del contexto")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	// Validar que el usuario es admin
+	if !isAdminFromClaims(claims) {
+		log.Warn("usuario no es admin")
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden: admin access required"})
+		return
+	}
+
+	// Obtener estadísticas del servicio
+	stats, err := c.service.GetStatistics(ctx.Request.Context())
+	if err != nil {
+		log.WithError(err).Error("error al obtener estadísticas")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch statistics", "details": err.Error()})
+		return
+	}
+
+	log.Info("estadísticas obtenidas exitosamente")
+	ctx.JSON(http.StatusOK, stats)
 }
