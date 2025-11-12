@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
-	Port      string
-	Memcached MemcachedConfig
-	RabbitMQ  RabbitMQConfig
-	Solr      SolrConfig
+	Port             string
+	Memcached        MemcachedConfig
+	RabbitMQ         RabbitMQConfig
+	Solr             SolrConfig
 	ActivitiesAPIURL string
 }
 

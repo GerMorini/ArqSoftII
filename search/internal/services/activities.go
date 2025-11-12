@@ -25,8 +25,9 @@ type ActivitiesRepository interface {
 }
 
 type ActivitiesCacheRepository interface {
+	List(ctx context.Context, filters dto.SearchFilters) (dto.PaginatedResponse, error)
 	SetPaginatedResult(filters dto.SearchFilters, result dto.PaginatedResponse) error
-	ActivitiesRepository
+	FlushAll() error
 }
 
 type ActivitiesConsumer interface {
@@ -35,7 +36,7 @@ type ActivitiesConsumer interface {
 
 type ActiviesServiceImpl struct {
 	localCache ActivitiesCacheRepository
-	memCache   ActivitiesCacheRepository
+	memCached  ActivitiesCacheRepository
 	search     ActivitiesRepository
 	consumer   ActivitiesConsumer
 }
@@ -43,7 +44,7 @@ type ActiviesServiceImpl struct {
 func NewActivitiesService(localCache ActivitiesCacheRepository, cache ActivitiesCacheRepository, search ActivitiesRepository, consumer ActivitiesConsumer) ActiviesServiceImpl {
 	return ActiviesServiceImpl{
 		localCache: localCache,
-		memCache:   cache,
+		memCached:  cache,
 		search:     search,
 		consumer:   consumer,
 	}
@@ -60,12 +61,12 @@ func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilter
 	log.Warnf("no se encontro actividad en cache local")
 	localCacheMiss = true
 
-	result, err = s.memCache.List(ctx, filters)
+	result, err = s.memCached.List(ctx, filters)
 	if err == nil {
-		log.Infof("cache hit en memcache: %v", filters)
+		log.Infof("cache hit en memcached: %v", filters)
 		return result, nil
 	}
-	log.Warnf("no se encontro actividad en memcache")
+	log.Warnf("no se encontro actividad en memcached")
 	memcacheMiss = true
 
 	result, err = s.search.List(ctx, filters)
@@ -82,10 +83,10 @@ func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilter
 		}
 
 		if memcacheMiss && result.Total != 0 {
-			if err := s.memCache.SetPaginatedResult(filters, result); err != nil {
-				log.Errorf("error cacheando resultado en memcache: %s", err.Error())
+			if err := s.memCached.SetPaginatedResult(filters, result); err != nil {
+				log.Errorf("error cacheando resultado en memcached: %s", err.Error())
 			} else {
-				log.Infof("resultado cacheado exitosamente en memcache")
+				log.Infof("resultado cacheado exitosamente en memcached")
 			}
 		}
 
@@ -133,15 +134,14 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 			return fmt.Errorf("error indexing activity: %w", err)
 		}
 
-		if _, err := s.memCache.Create(ctx, activity); err != nil {
-			slog.Warn("⚠️ Error caching activity in localcache",
-				slog.String("activity_id", message.ID),
+		// Invalidate all cache to ensure consistency
+		if err := s.localCache.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing local cache",
 				slog.String("error", err.Error()))
 		}
 
-		if _, err := s.memCache.Create(ctx, activity); err != nil {
-			slog.Warn("⚠️ Error caching activity",
-				slog.String("activity_id", message.ID),
+		if err := s.memCached.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing memcached",
 				slog.String("error", err.Error()))
 		}
 
@@ -158,16 +158,14 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 			return fmt.Errorf("error reindexing activity: %w", err)
 		}
 
-		// Update cache
-		if _, err := s.localCache.Update(ctx, message.ID, activity); err != nil {
-			slog.Warn("⚠️ Error updating activity in local cache",
-				slog.String("activity_id", message.ID),
+		// Invalidate all cache to ensure consistency
+		if err := s.localCache.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing local cache",
 				slog.String("error", err.Error()))
 		}
 
-		if _, err := s.memCache.Update(ctx, message.ID, activity); err != nil {
-			slog.Warn("⚠️ Error updating activity in cache",
-				slog.String("activity_id", message.ID),
+		if err := s.memCached.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing memcached",
 				slog.String("error", err.Error()))
 		}
 
@@ -184,16 +182,14 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 			return fmt.Errorf("error deleting activity in search: %w", err)
 		}
 
-		// Delete from cache
-		if err := s.localCache.Delete(ctx, message.ID); err != nil {
-			slog.Warn("⚠️ Error deleting activity from local cache",
-				slog.String("activity_id", message.ID),
+		// Invalidate all cache to ensure consistency
+		if err := s.localCache.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing local cache",
 				slog.String("error", err.Error()))
 		}
 
-		if err := s.memCache.Delete(ctx, message.ID); err != nil {
-			slog.Warn("⚠️ Error deleting activity from cache",
-				slog.String("activity_id", message.ID),
+		if err := s.memCached.FlushAll(); err != nil {
+			slog.Warn("⚠️ Error flushing memcached",
 				slog.String("error", err.Error()))
 		}
 
