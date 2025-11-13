@@ -14,7 +14,7 @@ const Register = () => {
         email: "",
         username: "",
         password: "",
-        confirmPassword: ""
+        confirm_password: ""
     });
     const [alertDialog, setAlertDialog] = useState(null);
     const [validationErrors, setValidationErrors] = useState({});
@@ -39,8 +39,8 @@ const Register = () => {
             const errors = usuarioService.validateUsuarioForm(formData, true);
 
             // Validar que las contraseñas coincidan
-            if (formData.password !== formData.confirmPassword) {
-                errors.confirmPassword = 'Las contraseñas no coinciden';
+            if (formData.password !== formData.confirm_password) {
+                errors.confirm_password = 'Las contraseñas no coinciden';
             }
 
             if (Object.keys(errors).length > 0) {
@@ -48,7 +48,7 @@ const Register = () => {
                 return;
             }
 
-            const { confirmPassword, ...registerData } = formData;
+            const { confirm_password, ...registerData } = formData;
             await register(registerData);
             navigate("/");
         } catch (err) {
@@ -145,14 +145,14 @@ const Register = () => {
                     <div className="input-group">
                         <input
                             type="password"
-                            name="confirmPassword"
+                            name="confirm_password"
                             placeholder="Confirmar Contraseña"
-                            value={formData.confirmPassword}
+                            value={formData.confirm_password}
                             onChange={handleChange}
                             disabled={loading}
                             required
                         />
-                        {validationErrors.confirmPassword && <span className="error-text">{validationErrors.confirmPassword}</span>}
+                        {validationErrors.confirm_password && <span className="error-text">{validationErrors.confirm_password}</span>}
                     </div>
 
                     <button type="submit" disabled={loading}>

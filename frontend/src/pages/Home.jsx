@@ -31,7 +31,7 @@ const Home = () => {
                         </button>
                         <button
                             className="cta-secondary"
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/register')}
                         >
                             Registrarse
                         </button>

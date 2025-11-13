@@ -208,8 +208,8 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_USERS_URL=${VITE_USERS_URL:-http://users-api:8080}
-        - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL:-http://activities-api:8080}
-        - VITE_SEARCH_URL=${VITE_SEARCH_URL:-http://search-api:8080}
+        - VITE_ACTIVITIES_URL=${VITE_ACTIVITIES_URL:-http://activities-api:8081}
+        - VITE_SEARCH_URL=${VITE_SEARCH_URL:-http://search-api:8082}
         - VITE_LOG_LEVEL=${VITE_LOG_LEVEL:-INFO}
     ports:
       - "80:80"
