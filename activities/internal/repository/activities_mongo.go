@@ -17,13 +17,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// MongoActivitiesRepository implementa ActivitiesRepository usando DB
 type MongoActivitiesRepository struct {
-	col *mongo.Collection // Referencia a la colección "activities" en DB
+	col *mongo.Collection
 }
 
-// NewMongoActivitiesRepository crea una nueva instancia del repository
-// Recibe una referencia a la base de datos DB
 func NewMongoActivitiesRepository(ctx context.Context, uri, dbName, collectionName string) *MongoActivitiesRepository {
 	opt := options.Client().ApplyURI(uri)
 	opt.SetServerSelectionTimeout(10 * time.Second)
@@ -48,26 +45,20 @@ func NewMongoActivitiesRepository(ctx context.Context, uri, dbName, collectionNa
 
 // List obtiene todos los activities de DB
 func (r *MongoActivitiesRepository) List(ctx context.Context) ([]dto.Activity, error) {
-	// ⏰ Timeout para evitar que la operación se cuelgue
-	// Esto es importante en producción para no bloquear indefinidamente
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// 🔍 Find() sin filtros retorna todos los documentos de la colección
-	// bson.M{} es un filtro vacío (equivale a {} en DB shell)
 	cur, err := r.col.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}
-	defer cur.Close(ctx) // ⚠️ IMPORTANTE: Siempre cerrar el cursor para liberar recursos
+	defer cur.Close(ctx)
 
-	// 📦 Decodificar resultados en slice de DAO (modelo DB)
-	// Usamos el modelo DAO porque maneja ObjectID y tags BSON
 	var daoActivities []dao.ActivityDAO
 	if err := cur.All(ctx, &daoActivities); err != nil {
 		return nil, err
 	}
-	// Convertir de DAO a Domain
+
 	dtoActivities := make([]dto.Activity, len(daoActivities))
 	for i, daoAct := range daoActivities {
 		dtoActivities[i] = daoAct.ToDomain()
@@ -94,7 +85,6 @@ func (r *MongoActivitiesRepository) GetMany(ctx context.Context, ids []string) (
 		return []dto.Activity{}, nil
 	}
 
-	// Query: find all documents where _id is in the list
 	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
 	cur, err := r.col.Find(ctx, filter)
 	if err != nil {
@@ -107,7 +97,6 @@ func (r *MongoActivitiesRepository) GetMany(ctx context.Context, ids []string) (
 		return nil, err
 	}
 
-	// Convert to domain DTOs
 	dtoActivities := make([]dto.Activity, len(daoActivities))
 	for i, daoAct := range daoActivities {
 		dtoActivities[i] = daoAct.ToDomain()
@@ -118,12 +107,11 @@ func (r *MongoActivitiesRepository) GetMany(ctx context.Context, ids []string) (
 
 // Create inserta un nuevo activity en DB
 func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
-	activityDAO := dao.FromDomainDAO(activity) // Convertir a modelo DAO
+	activityDAO := dao.FromDomainDAO(activity)
 
 	activityDAO.ID = primitive.NewObjectID()
 	activityDAO.FechaCreacion = time.Now().UTC()
 
-	// Insertar en DB
 	_, err := r.col.InsertOne(ctx, activityDAO)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -136,9 +124,7 @@ func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.Act
 }
 
 // Update actualiza un activity existente
-// Consigna 3: Update parcial + actualizar updatedAt
 func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
-	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return dto.ActivityAdministration{}, errors.New("invalid ID format")
@@ -182,7 +168,6 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 
 	update := bson.M{"$set": set}
 
-	// Ejecutar la actualización
 	result, err := r.col.UpdateByID(ctx, objID, update)
 	if err != nil {
 		return dto.ActivityAdministration{}, err
@@ -191,19 +176,16 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 		return dto.ActivityAdministration{}, errors.New("activity not found")
 	}
 
-	// Retornar el activity actualizado
 	return r.GetByID(ctx, id)
 }
 
 // Delete elimina un activity por ID
 func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error {
-	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return errors.New("invalid ID format")
 	}
 
-	// Ejecutar la eliminación
 	result, err := r.col.DeleteOne(ctx, bson.M{"_id": objID})
 	if err != nil {
 		return err
@@ -216,15 +198,12 @@ func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error
 }
 
 // GetByID busca un activity por su ID
-// Consigna 2: Validar que el ID sea un ObjectID válido
 func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error) {
-	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return dto.ActivityAdministration{}, errors.New("invalid ID format")
 	}
 
-	// Buscar en DB
 	var activityDAO dao.ActivityDAO
 	err = r.col.FindOne(ctx, bson.M{"_id": objID}).Decode(&activityDAO)
 	if err != nil {
@@ -239,22 +218,25 @@ func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto
 }
 
 func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, userID string) (string, error) {
-	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return "", errors.New("invalid ID format")
 	}
+
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
 		return "", fmt.Errorf("error converting userID to int: %w", err)
 	}
+
 	act, err := r.GetByID(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("error getting activity from repository: %w", err)
 	}
+
 	if len(act.UsersInscribed) >= (act.CapacidadMax) {
 		return "", errors.New("activity is full")
 	}
+
 	// check user not already inscribed
 	var userID_int int
 	fmt.Sscanf(userID, "%d", &userID_int)
@@ -263,7 +245,7 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 			return "", errors.New("user already inscribed")
 		}
 	}
-	// Ejecutar la actualización
+
 	update := bson.M{"$push": bson.M{"usuarios_inscritos": idint}}
 	result, err := r.col.UpdateByID(ctx, objID, update)
 	if err != nil {
@@ -276,19 +258,21 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 }
 
 func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string, userID string) (string, error) {
-	// Validar que el ID es un ObjectID válido
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return "", errors.New("invalid ID format")
 	}
+
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
 		return "", fmt.Errorf("error converting userID to int: %w", err)
 	}
+
 	act, err := r.GetByID(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("error getting activity from repository: %w", err)
 	}
+
 	found := false
 	var userID_int int
 	fmt.Sscanf(userID, "%d", &userID_int)
@@ -301,7 +285,7 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 	if !found {
 		return "", errors.New("user not inscribed in activity")
 	}
-	// Ejecutar la actualización
+
 	update := bson.M{"$pull": bson.M{"usuarios_inscritos": idint}}
 	result, err := r.col.UpdateByID(ctx, objID, update)
 	if err != nil {
@@ -318,25 +302,48 @@ func (r *MongoActivitiesRepository) GetInscripcionesByUserID(ctx context.Context
 	if err != nil {
 		return nil, fmt.Errorf("error converting userID to int: %w", err)
 	}
-	// Buscar en DB
+
 	cur, err := r.col.Find(ctx, bson.M{"usuarios_inscritos": idint})
 	if err != nil {
 		return nil, err
 	}
-	defer cur.Close(ctx) // ⚠️ IMPORTANTE: Siempre cerrar el cursor para liberar recursos
+	defer cur.Close(ctx)
 
-	// 📦 Decodificar resultados en slice de DAO (modelo DB)
-	// Usamos el modelo DAO porque maneja ObjectID y tags BSON
 	var daoActivities []dao.ActivityDAO
 	if err := cur.All(ctx, &daoActivities); err != nil {
 		return nil, err
 	}
-	// Convertir de DAO a Domain
+
 	activityIDs := make([]string, len(daoActivities))
 	for i, daoAct := range daoActivities {
 		activityIDs[i] = daoAct.ID.Hex()
 	}
 	return activityIDs, nil
+}
+
+func (r *MongoActivitiesRepository) GetActivitiesByUserID(ctx context.Context, userID string) (dto.Activities, error) {
+	idint, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, fmt.Errorf("error converting userID to int: %w", err)
+	}
+
+	cur, err := r.col.Find(ctx, bson.M{"usuarios_inscritos": idint})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var daoActivities []dao.ActivityDAO
+	if err := cur.All(ctx, &daoActivities); err != nil {
+		return nil, err
+	}
+
+	var dtoActivities dto.Activities = make(dto.Activities, len(daoActivities))
+	for i, dao := range daoActivities {
+		dtoActivities[i] = dao.ToDomain()
+	}
+
+	return dtoActivities, nil
 }
 
 // ListAllForAdmin retrieves all activities with full administration data (including UsersInscribed)

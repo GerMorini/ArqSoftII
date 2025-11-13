@@ -17,20 +17,10 @@ import (
 )
 
 func main() {
-	// 📋 Cargar configuración desde las variables de entorno
 	cfg := config.Load()
-
-	// 🏗️ Inicializar capas de la aplicación (Dependency Injection)
-	// Patrón: Repository -> Service -> Controller
-	// Cada capa tiene una responsabilidad específica
-
-	// Context
 	ctx := context.Background()
 
-	// Capa de datos: maneja operaciones DB
 	activitiesMongoRepo := repository.NewMongoActivitiesRepository(ctx, cfg.Mongo.URI, cfg.Mongo.DB, "activities")
-
-	// RabbitMQ client: para publicar eventos de actividades
 	rabbitClient, err := clients.NewRabbitMQClient(
 		cfg.RabbitMQ.Host,
 		cfg.RabbitMQ.Port,
@@ -43,26 +33,12 @@ func main() {
 	}
 	defer rabbitClient.Close()
 
-	// Capa de lógica de negocio: validaciones, transformaciones
 	activityService := services.NewActivitiesService(activitiesMongoRepo, rabbitClient)
-
-	// Capa de controladores: maneja HTTP requests/responses
 	activityController := controllers.NewActivitiesController(activityService)
 
-	// NOTE: Activities service no longer consumes RabbitMQ messages for Solr.
-	// Indexing into Solr is handled by the separate `search` service which
-	// subscribes to the RabbitMQ queue and performs the indexing.
-
-	// Cache (ejercicio: ajustar TTL y agregar "índice" de claves)
-	// cache := cache.NewMemcached(memAddr)
-
-	// 🌐 Configurar router HTTP con Gin
 	router := gin.Default()
-
-	// Middleware: funciones que se ejecutan en cada request
 	router.Use(middleware.CORSMiddleware)
 
-	// 🏥 Health check endpoint
 	router.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -101,7 +77,6 @@ func main() {
 	// GET /activities/statistics - obtener estadísticas de actividades (protegido - solo admin)
 	router.GET("/activities/statistics", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetStatistics)
 
-	// Configuración del server HTTP
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
@@ -112,7 +87,6 @@ func main() {
 	log.Printf("📊 Health check: http://localhost:%s/healthz", cfg.Port)
 	log.Printf("📚 Activities API: http://localhost:%s/activities", cfg.Port)
 
-	// Iniciar servidor (bloquea hasta que se pare el servidor)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
 	}

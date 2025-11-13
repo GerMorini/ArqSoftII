@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
 )
 
-// ActivitiesService define la lógica de negocio para Activities
 type ActivitiesService interface {
 	List(ctx context.Context) ([]dto.Activity, error)
 	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
@@ -22,20 +22,18 @@ type ActivitiesService interface {
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
+	GetActivitiesByUserID(ctx context.Context, userID string) (dto.Activities, error)
 	GetStatistics(ctx context.Context) (dto.ActivityStatistics, error)
 }
 
-// ActivitiesController maneja las peticiones HTTP para Activities
 type ActivitiesController struct {
 	service ActivitiesService
 }
 
-// NewActivitiesController crea una nueva instancia del controller
 func NewActivitiesController(s ActivitiesService) *ActivitiesController {
 	return &ActivitiesController{service: s}
 }
 
-// Helpers to read claims from context
 func getClaimsFromContext(c *gin.Context) (jwt.MapClaims, bool) {
 	v, ok := c.Get("claims")
 	if !ok {
@@ -80,6 +78,19 @@ func isAdminFromClaims(claims jwt.MapClaims) bool {
 		}
 	}
 	return false
+}
+
+func splitAndTrim(s string, sep string) []string {
+	var result []string
+	parts := strings.Split(s, sep)
+
+	for _, item := range parts {
+		trimmed := strings.TrimSpace(item)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // Authentication is handled by middleware; handlers can read claims from context if needed
@@ -131,48 +142,6 @@ func (c *ActivitiesController) GetManyActivities(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"activities": activities, "count": len(activities)})
 }
 
-// Helper function to split and trim strings
-func splitAndTrim(s string, sep string) []string {
-	var result []string
-	for _, item := range splitString(s, sep) {
-		trimmed := trimString(item)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
-}
-
-func splitString(s string, sep string) []string {
-	if s == "" {
-		return []string{}
-	}
-	var result []string
-	current := ""
-	for _, char := range s {
-		if string(char) == sep {
-			result = append(result, current)
-			current = ""
-		} else {
-			current += string(char)
-		}
-	}
-	result = append(result, current)
-	return result
-}
-
-func trimString(s string) string {
-	start := 0
-	end := len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
-		end--
-	}
-	return s[start:end]
-}
-
 // CreateActivity maneja POST /activities
 func (c *ActivitiesController) CreateActivity(ctx *gin.Context) {
 	var newAct dto.ActivityAdministration
@@ -212,7 +181,7 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID parameter is required"})
 		return
 	}
-	// require token (we need to know requester role)
+
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
@@ -259,7 +228,6 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 
 // Inscribir maneja POST /activities/:id/inscribir
 func (c *ActivitiesController) Inscribir(ctx *gin.Context) {
-	// auth middleware ensures claims exist
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
@@ -274,8 +242,6 @@ func (c *ActivitiesController) Inscribir(ctx *gin.Context) {
 		return
 	}
 
-	// Non-admin users can inscribirse; admins may also inscribirse but typically shouldn't
-	// Here we allow non-admin users explicitly. If admin, block.
 	if isAdminFromClaims(claims) {
 		log.Warnf("intento de inscripcion por usuario admin: %s", claims["username"])
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "admin users cannot inscribe"})
@@ -289,7 +255,6 @@ func (c *ActivitiesController) Inscribir(ctx *gin.Context) {
 		return
 	}
 
-	// call service Inscribir with activityID and userID (current repository uses only activity id; user id handling done inside repo)
 	_, err := c.service.Inscribir(ctx.Request.Context(), activityID, uid)
 	if err != nil {
 		log.Errorf("fallo al inscribir usuario %s en actividad %s: %v", uid, activityID, err)
@@ -357,7 +322,6 @@ func (c *ActivitiesController) UpdateActivity(ctx *gin.Context) {
 		return
 	}
 
-	//admin only
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
@@ -395,7 +359,6 @@ func (c *ActivitiesController) DeleteActivity(ctx *gin.Context) {
 		return
 	}
 
-	//admin only
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
@@ -431,30 +394,35 @@ func (c *ActivitiesController) GetInscripcionesByUserID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "userId parameter is required"})
 		return
 	}
+
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
 		return
 	}
+
 	requesterID, ok := getUserIDFromClaims(claims)
 	if !ok {
 		log.Warnf("id de usuario invalido en claims del token")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id in token claims"})
 		return
 	}
+
 	// Only allow users to fetch their own inscripciones unless admin
 	if requesterID != userID && !isAdminFromClaims(claims) {
 		log.Warnf("usuario %s intento acceder a inscripciones de usuario %s sin permisos", requesterID, userID)
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "cannot access other user's inscripciones"})
 		return
 	}
+
 	inscripciones, err := c.service.GetInscripcionesByUserID(ctx.Request.Context(), userID)
 	if err != nil {
 		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
 		return
 	}
+
 	log.Infof("inscripciones obtenidas exitosamente para usuario %s", userID)
 	ctx.JSON(http.StatusOK, gin.H{"user_id": userID, "inscripciones": inscripciones, "count": len(inscripciones)})
 }
@@ -467,18 +435,21 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "userId parameter is required"})
 		return
 	}
+
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warnf("token sin claims")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "missing token claims"})
 		return
 	}
+
 	requesterID, ok := getUserIDFromClaims(claims)
 	if !ok {
 		log.Warnf("id de usuario invalido en claims del token")
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id in token claims"})
 		return
 	}
+
 	// Only allow users to fetch their own activities unless admin
 	if requesterID != userID && !isAdminFromClaims(claims) {
 		log.Warnf("usuario %s intento acceder a actividades inscritas de usuario %s sin permisos", requesterID, userID)
@@ -486,26 +457,10 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 		return
 	}
 
-	// Step 1: Get activity IDs for this user
-	inscripciones, err := c.service.GetInscripcionesByUserID(ctx.Request.Context(), userID)
+	activities, err := c.service.GetActivitiesByUserID(ctx, userID)
 	if err != nil {
 		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
-		return
-	}
-
-	// Step 2: If no inscriptions, return empty array
-	if len(inscripciones) == 0 {
-		log.Infof("usuario %s no tiene actividades inscritas", userID)
-		ctx.JSON(http.StatusOK, gin.H{"activities": []interface{}{}, "count": 0})
-		return
-	}
-
-	// Step 3: Get full activity data for these IDs
-	activities, err := c.service.GetMany(ctx.Request.Context(), inscripciones)
-	if err != nil {
-		log.Errorf("error al obtener datos de actividades para usuario %s: %v", userID, err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch activity data", "details": err.Error()})
 		return
 	}
 
@@ -515,7 +470,6 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 
 // GetStatistics obtiene estadísticas de actividades (solo admin)
 func (c *ActivitiesController) GetStatistics(ctx *gin.Context) {
-	// Validar autenticación
 	claims, ok := getClaimsFromContext(ctx)
 	if !ok {
 		log.Warn("no se pudieron obtener claims del contexto")
@@ -523,14 +477,12 @@ func (c *ActivitiesController) GetStatistics(ctx *gin.Context) {
 		return
 	}
 
-	// Validar que el usuario es admin
 	if !isAdminFromClaims(claims) {
 		log.Warn("usuario no es admin")
 		ctx.JSON(http.StatusForbidden, gin.H{"error": "forbidden: admin access required"})
 		return
 	}
 
-	// Obtener estadísticas del servicio
 	stats, err := c.service.GetStatistics(ctx.Request.Context())
 	if err != nil {
 		log.WithError(err).Error("error al obtener estadísticas")

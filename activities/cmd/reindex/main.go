@@ -11,19 +11,14 @@ import (
 )
 
 func main() {
-	// Load configuration from environment variables
 	cfg := config.Load()
 
-	// JWT_SECRET is not required for reindexing, but config.Load() requires it
-	// Set a dummy value if not set to avoid panic
 	if os.Getenv("JWT_SECRET") == "" {
 		os.Setenv("JWT_SECRET", "reindex-dummy-secret")
 	}
 
-	// Initialize context
 	ctx := context.Background()
 
-	// Initialize MongoDB repository to fetch activities
 	log.Info("Connecting to MongoDB...")
 	activitiesRepo := repository.NewMongoActivitiesRepository(ctx, cfg.Mongo.URI, cfg.Mongo.DB, "activities")
 	if activitiesRepo == nil {
@@ -31,7 +26,6 @@ func main() {
 	}
 	log.Info("MongoDB connection established")
 
-	// Initialize RabbitMQ client to publish messages
 	log.Info("Connecting to RabbitMQ...")
 	rabbitClient, err := clients.NewRabbitMQClient(
 		cfg.RabbitMQ.Host,
@@ -46,7 +40,6 @@ func main() {
 	defer rabbitClient.Close()
 	log.Info("RabbitMQ connection established")
 
-	// Fetch all activities from MongoDB
 	log.Info("Fetching all activities from MongoDB...")
 	activities, err := activitiesRepo.List(ctx)
 	if err != nil {
@@ -54,7 +47,6 @@ func main() {
 	}
 	log.Infof("Found %d activities to reindex", len(activities))
 
-	// Publish each activity to RabbitMQ with "create" action
 	successCount := 0
 	errorCount := 0
 
@@ -74,14 +66,12 @@ func main() {
 			successCount++
 		}
 
-		// Log progress every 10 activities
 		if (i+1)%10 == 0 || (i+1) == len(activities) {
 			log.Infof("Progress: %d/%d activities processed (success: %d, errors: %d)",
 				i+1, len(activities), successCount, errorCount)
 		}
 	}
 
-	// Final summary
 	log.Info("=== Reindex Summary ===")
 	log.Infof("Total activities: %d", len(activities))
 	log.Infof("Successfully published: %d", successCount)

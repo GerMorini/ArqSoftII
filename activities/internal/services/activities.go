@@ -11,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ActivitiesRepository define las operaciones de datos para Activities
 type ActivitiesRepository interface {
 	List(ctx context.Context) ([]dto.Activity, error)
 	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
@@ -22,10 +21,10 @@ type ActivitiesRepository interface {
 	Inscribir(ctx context.Context, id string, userID string) (string, error)
 	Desinscribir(ctx context.Context, id string, userID string) (string, error)
 	GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error)
+	GetActivitiesByUserID(ctx context.Context, userID string) (dto.Activities, error)
 	ListAllForAdmin(ctx context.Context) ([]dto.ActivityAdministration, error)
 }
 
-// ActivitiesService define la capa de servicios usada por controllers
 type ActivitiesService interface {
 	List(ctx context.Context) ([]dto.Activity, error)
 	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
@@ -39,23 +38,55 @@ type ActivitiesService interface {
 	GetStatistics(ctx context.Context) (dto.ActivityStatistics, error)
 }
 
-// RabbitMQPublisher interface para publicar eventos
 type RabbitMQPublisher interface {
 	Publish(ctx context.Context, action string, id string, nombre string, descripcion string, dia string) error
 }
 
-// ActivitiesServiceImpl implementa ActivitiesService
 type ActivitiesServiceImpl struct {
 	repository      ActivitiesRepository
 	rabbitPublisher RabbitMQPublisher
 }
 
-// NewActivitiesService crea una nueva instancia del service
 func NewActivitiesService(repo ActivitiesRepository, rabbit RabbitMQPublisher) *ActivitiesServiceImpl {
 	return &ActivitiesServiceImpl{
 		repository:      repo,
 		rabbitPublisher: rabbit,
 	}
+}
+
+func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) error {
+	if strings.TrimSpace(a.Nombre) == "" {
+		return errors.New("nombre is required and cannot be empty")
+	}
+	if strings.TrimSpace(a.Profesor) == "" {
+		return errors.New("profesor is required and cannot be empty")
+	}
+	if strings.TrimSpace(a.HoraInicio) == "" || strings.TrimSpace(a.HoraFin) == "" {
+		return errors.New("horaInicio and horaFin are required and cannot be empty")
+	}
+	if a.CapacidadMax == 0 {
+		return errors.New("capacidadMax is required and cannot be empty")
+	}
+	if a.CapacidadMax < 0 {
+		return errors.New("capacidadMax cannot be negative")
+	}
+	if strings.TrimSpace(a.DiaSemana) == "" {
+		return errors.New("diaSemana is required and cannot be empty")
+	}
+	validDays := map[string]bool{
+		"Lunes":     true,
+		"Martes":    true,
+		"Miércoles": true,
+		"Jueves":    true,
+		"Viernes":   true,
+		"Sábado":    true,
+		"Domingo":   true,
+	}
+	if !validDays[a.DiaSemana] {
+		return errors.New("diaSemana must be a valid day of the week (e.g., Lunes, Martes, etc.)")
+	}
+
+	return nil
 }
 
 // List obtiene todas las actividades
@@ -74,13 +105,11 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 		return dto.ActivityAdministration{}, fmt.Errorf("validation error: %w", err)
 	}
 
-	// Step 1: Create in MongoDB
 	created, err := s.repository.Create(ctx, activity)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("error creating activity in repository: %w", err)
 	}
 
-	// Step 2: Publish event to RabbitMQ (include activity data for search indexing)
 	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID, created.Nombre, created.Descripcion, created.DiaSemana); err != nil {
 		log.Errorf("Failed to publish create event for activity %s: %v", created.ID, err)
 
@@ -142,13 +171,11 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		}
 	}
 
-	// Step 1: Update in MongoDB
 	updated, err := s.repository.Update(ctx, id, activity)
 	if err != nil {
 		return dto.ActivityAdministration{}, fmt.Errorf("error updating activity in repository: %w", err)
 	}
 
-	// Step 2: Publish event to RabbitMQ
 	if err := s.rabbitPublisher.Publish(ctx, "update", updated.ID, updated.Nombre, updated.Descripcion, updated.DiaSemana); err != nil {
 		log.Errorf("Failed to publish update event for activity %s: %v", id, err)
 
@@ -168,18 +195,15 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 
 // Delete elimina una actividad por ID
 func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
-	// Step 0: Get the activity to be able to restore it if needed
 	activityToDelete, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("activity does not exist: %w", err)
 	}
 
-	// Step 1: Delete from MongoDB
 	if err := s.repository.Delete(ctx, id); err != nil {
 		return fmt.Errorf("error deleting activity in repository: %w", err)
 	}
 
-	// Step 2: Publish event to RabbitMQ
 	if err := s.rabbitPublisher.Publish(ctx, "delete", activityToDelete.ID, activityToDelete.Nombre, activityToDelete.Descripcion, activityToDelete.DiaSemana); err != nil {
 		log.Errorf("Failed to publish delete event for activity %s: %v", id, err)
 
@@ -207,51 +231,17 @@ func (s *ActivitiesServiceImpl) Desinscribir(ctx context.Context, id string, use
 	return s.repository.Desinscribir(ctx, id, userID)
 }
 
-// validateActivity aplica validaciones simples sobre la actividad
-func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) error {
-	if strings.TrimSpace(a.Nombre) == "" {
-		return errors.New("nombre is required and cannot be empty")
-	}
-	if strings.TrimSpace(a.Profesor) == "" {
-		return errors.New("profesor is required and cannot be empty")
-	}
-	if strings.TrimSpace(a.HoraInicio) == "" || strings.TrimSpace(a.HoraFin) == "" {
-		return errors.New("horaInicio and horaFin are required and cannot be empty")
-	}
-	if a.CapacidadMax == 0 {
-		return errors.New("capacidadMax is required and cannot be empty")
-	}
-	if a.CapacidadMax < 0 {
-		return errors.New("capacidadMax cannot be negative")
-	}
-	if strings.TrimSpace(a.DiaSemana) == "" {
-		return errors.New("diaSemana is required and cannot be empty")
-	}
-	validDays := map[string]bool{
-		"Lunes":     true,
-		"Martes":    true,
-		"Miércoles": true,
-		"Jueves":    true,
-		"Viernes":   true,
-		"Sábado":    true,
-		"Domingo":   true,
-	}
-	if !validDays[a.DiaSemana] {
-		return errors.New("diaSemana must be a valid day of the week (e.g., Lunes, Martes, etc.)")
-	}
-
-	return nil
-}
-
 // GetInscripcionesByUserID obtiene las actividades inscritas por un usuario
 func (s *ActivitiesServiceImpl) GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error) {
 	return s.repository.GetInscripcionesByUserID(ctx, userID)
 }
 
+func (s *ActivitiesServiceImpl) GetActivitiesByUserID(ctx context.Context, userID string) (dto.Activities, error) {
+	return s.repository.GetActivitiesByUserID(ctx, userID)
+}
+
 // GetStatistics calcula estadísticas de actividades usando concurrencia
-// Este método demuestra el uso de goroutines, channels y WaitGroups
 func (s *ActivitiesServiceImpl) GetStatistics(ctx context.Context) (dto.ActivityStatistics, error) {
-	// Obtener todas las actividades con datos completos (incluye UsersInscribed)
 	activities, err := s.repository.ListAllForAdmin(ctx)
 	if err != nil {
 		log.WithError(err).Error("Error fetching activities for statistics")
@@ -364,22 +354,22 @@ func (s *ActivitiesServiceImpl) GetStatistics(ctx context.Context) (dto.Activity
 		avgEnrollmentRate = float64(totalEnrollments) / float64(len(activities))
 	}
 
-	// Construir el resultado
+	// Calculate total capacity
+	var totalCapacity int
+	for _, act := range activities {
+		totalCapacity += act.CapacidadMax
+	}
+
 	stats := dto.ActivityStatistics{
 		TotalActivities:       len(activities),
 		TotalEnrollments:      totalEnrollments,
 		AverageEnrollmentRate: avgEnrollmentRate,
-		TotalCapacity:         0, // Will be calculated below
+		TotalCapacity:         totalCapacity,
 		CapacityUtilization:   capacityUtilization,
 		ActivitiesByDay:       dayDistribution,
 		MostPopularActivity:   mostPopular,
 		FullActivitiesCount:   fullActivities,
 		AvailableActivities:   len(activities) - fullActivities,
-	}
-
-	// Calculate total capacity
-	for _, act := range activities {
-		stats.TotalCapacity += act.CapacidadMax
 	}
 
 	log.WithFields(log.Fields{
