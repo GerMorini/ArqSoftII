@@ -51,31 +51,31 @@ func main() {
 	router.GET("/activities/many", activityController.GetManyActivities)
 
 	// POST /activities - crear nuevo activity (protegido)
-	router.POST("/activities", middleware.AuthMiddleware(cfg.JwtSecret), activityController.CreateActivity)
+	router.POST("/activities", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.CreateActivity)
 
 	// GET /activities/:id - obtener activity por ID (devuelve DTO admin o público según rol)
-	router.GET("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetActivityByID)
+	router.GET("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.GetActivityByID)
 
 	// PUT /activities/:id - actualizar activity existente (protegido)
-	router.PUT("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret), activityController.UpdateActivity)
+	router.PUT("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.UpdateActivity)
 
 	// DELETE /activities/:id - eliminar activity (protegido)
-	router.DELETE("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret), activityController.DeleteActivity)
+	router.DELETE("/activities/:id", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.DeleteActivity)
 
 	// POST /activities/:id/inscribir - inscribir usuario (protegido)
-	router.POST("/activities/:id/inscribir", middleware.AuthMiddleware(cfg.JwtSecret), activityController.Inscribir)
+	router.POST("/activities/:id/inscribir", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.Inscribir)
 
 	// POST /activities/:id/desinscribir - desinscribir usuario (protegido)
-	router.POST("/activities/:id/desinscribir", middleware.AuthMiddleware(cfg.JwtSecret), activityController.Desinscribir)
+	router.POST("/activities/:id/desinscribir", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.Desinscribir)
 
 	// GET /inscriptions/:userId - obtener actividades inscritas por usuario (protegido)
-	router.GET("/inscriptions/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscripcionesByUserID)
+	router.GET("/inscriptions/:userId", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.GetInscripcionesByUserID)
 
 	// GET /inscriptions/data/:userId - obtener datos completos de actividades inscritas por usuario (protegido)
-	router.GET("/inscriptions/data/:userId", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetInscribedActivities)
+	router.GET("/inscriptions/data/:userId", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.GetInscribedActivities)
 
 	// GET /activities/statistics - obtener estadísticas de actividades (protegido - solo admin)
-	router.GET("/activities/statistics", middleware.AuthMiddleware(cfg.JwtSecret), activityController.GetStatistics)
+	router.GET("/activities/statistics", middleware.AuthMiddleware(cfg.JwtSecret, "http://users-api:8080/auth"), activityController.GetStatistics)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

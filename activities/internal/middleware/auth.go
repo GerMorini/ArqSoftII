@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string, usersAuthPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		auth := c.GetHeader("Authorization")
 		if auth == "" {
@@ -38,6 +38,17 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
 			return
+		}
+
+		if claims["is_admin"].(bool) {
+			req, _ := http.NewRequest("GET", usersAuthPath, nil)
+			req.Header.Add("Authorization", auth)
+
+			response, err := http.DefaultClient.Do(req)
+			if err != nil || response.StatusCode != http.StatusOK {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "admin authorization failed", "details": err.Error()})
+				return
+			}
 		}
 
 		c.Set("claims", claims)
