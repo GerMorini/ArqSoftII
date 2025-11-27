@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 	"users/internal/dto"
+	"users/internal/repository"
 	"users/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type UsersController struct {
@@ -64,10 +64,10 @@ func (c *UsersController) Login(ctx *gin.Context) {
 
 	token, err := c.service.Login(loginDTO)
 	if err != nil {
-		if err == services.ErrIncorrectCredentials || strings.Contains(err.Error(), "record not found") {
+		if errors.Is(err, services.ErrIncorrectCredentials) || errors.Is(err, repository.ErrUserNotFound) {
 			ctx.Error(fmt.Errorf("contraseña incorrecta para el usuario: username=%s email=%s", loginDTO.Username, loginDTO.Email))
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Credenciales incorrectas"})
-		} else if err == services.ErrLoginFormat {
+		} else if errors.Is(err, services.ErrLoginFormat) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		} else {
 			ctx.Error(fmt.Errorf("error al realizar login de usuario: %s", err.Error()))
@@ -77,7 +77,7 @@ func (c *UsersController) Login(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"access_token": token,
 		"token_type":   "bearer",
 		"expires_in":   1800, // en segundos
@@ -97,9 +97,10 @@ func (c *UsersController) Create(ctx *gin.Context) {
 	if err != nil {
 		ctx.Error(fmt.Errorf("error al registrar un usuario: %s", err.Error()))
 
-		errString := strings.ToLower(err.Error())
-		if strings.Contains(errString, "error 1062") {
-			ctx.JSON(http.StatusConflict, gin.H{"error": "El usuario ya está registrado"})
+		if errors.Is(err, repository.ErrDuplicateUsername) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": "El nombre de usuario ya está en uso"})
+		} else if errors.Is(err, repository.ErrDuplicateEmail) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": "El email ya está registrado"})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrarse"})
 		}
@@ -138,7 +139,7 @@ func (c *UsersController) GetByID(ctx *gin.Context) {
 	userData, err := c.service.GetByID(id)
 	if err != nil {
 		ctx.Error(fmt.Errorf("error al buscar un usuario por su ID: %v", err))
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
 			return
 		}
@@ -172,7 +173,7 @@ func (c *UsersController) Update(ctx *gin.Context) {
 	}
 	if !isAdminFromClaims(claims) {
 		log.Warnf("operacion sin privilegios para el usuario: %s@%s", claims["username"], ctx.RemoteIP())
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update activities"})
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update users"})
 		return
 	}
 
@@ -193,7 +194,7 @@ func (c *UsersController) Update(ctx *gin.Context) {
 	userData, err := c.service.Update(id, updateDTO)
 	if err != nil {
 		ctx.Error(fmt.Errorf("error al actualizar usuario con ID %d: %v", id, err))
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
 			return
 		}
@@ -216,7 +217,7 @@ func (c *UsersController) Delete(ctx *gin.Context) {
 	}
 	if !isAdminFromClaims(claims) {
 		log.Warnf("operacion sin privilegios para el usuario: %s@%s", claims["username"], ctx.RemoteIP())
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can update activities"})
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "only admin users can delete users"})
 		return
 	}
 
@@ -230,6 +231,10 @@ func (c *UsersController) Delete(ctx *gin.Context) {
 	err = c.service.Delete(id)
 	if err != nil {
 		ctx.Error(fmt.Errorf("error al eliminar usuario con ID %d: %v", id, err))
+		if errors.Is(err, repository.ErrUserNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "usuario no encontrado"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error al eliminar usuario"})
 		return
 	}

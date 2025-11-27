@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"activities/internal/dto"
+	"activities/internal/repository"
+	"activities/internal/services"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -164,6 +167,11 @@ func (c *ActivitiesController) CreateActivity(ctx *gin.Context) {
 	}
 	created, err := c.service.Create(ctx.Request.Context(), newAct)
 	if err != nil {
+		if errors.Is(err, services.ErrValidation) {
+			log.Warnf("error de validación al crear actividad: %v", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Validation error", "details": err.Error()})
+			return
+		}
 		log.Errorf("fallo al crear actividad: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create activity", "details": err.Error()})
 		return
@@ -191,7 +199,7 @@ func (c *ActivitiesController) GetActivityByID(ctx *gin.Context) {
 
 	actAdmin, err := c.service.GetByID(ctx.Request.Context(), id)
 	if err != nil {
-		if err.Error() == "activity not found" {
+		if errors.Is(err, repository.ErrActivityNotFound) {
 			log.Warnf("actividad no encontrada: %s", id)
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 			return
@@ -257,6 +265,24 @@ func (c *ActivitiesController) Inscribir(ctx *gin.Context) {
 
 	_, err := c.service.Inscribir(ctx.Request.Context(), activityID, uid)
 	if err != nil {
+		if errors.Is(err, repository.ErrActivityNotFound) {
+			log.Warnf("actividad no encontrada para inscribir: %s", activityID)
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+			return
+		}
+
+		if errors.Is(err, repository.ErrActivityFull) {
+			log.Warnf("actividad llena: %s", activityID)
+			ctx.JSON(http.StatusConflict, gin.H{"error": "Activity is full"})
+			return
+		}
+
+		if errors.Is(err, repository.ErrUserAlreadyInscribed) {
+			log.Warnf("usuario %s ya inscrito en actividad %s", uid, activityID)
+			ctx.JSON(http.StatusConflict, gin.H{"error": "User already inscribed in this activity"})
+			return
+		}
+
 		log.Errorf("fallo al inscribir usuario %s en actividad %s: %v", uid, activityID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to inscribe", "details": err.Error()})
 		return
@@ -297,6 +323,18 @@ func (c *ActivitiesController) Desinscribir(ctx *gin.Context) {
 
 	_, err := c.service.Desinscribir(ctx.Request.Context(), activityID, uid)
 	if err != nil {
+		if errors.Is(err, repository.ErrActivityNotFound) {
+			log.Warnf("actividad no encontrada para desinscribir: %s", activityID)
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+			return
+		}
+
+		if errors.Is(err, repository.ErrUserNotInscribed) {
+			log.Warnf("usuario %s no inscrito en actividad %s", uid, activityID)
+			ctx.JSON(http.StatusConflict, gin.H{"error": "User not inscribed in this activity"})
+			return
+		}
+
 		log.Errorf("fallo al desinscribir usuario %s de actividad %s: %v", uid, activityID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to desinscribe", "details": err.Error()})
 		return
@@ -336,9 +374,14 @@ func (c *ActivitiesController) UpdateActivity(ctx *gin.Context) {
 
 	updated, err := c.service.Update(ctx.Request.Context(), id, toUpdate)
 	if err != nil {
-		if err.Error() == "activity not found" {
+		if errors.Is(err, repository.ErrActivityNotFound) {
 			log.Warnf("actividad no encontrada para actualizar: %s", id)
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
+			return
+		}
+		if errors.Is(err, services.ErrValidation) {
+			log.Warnf("error de validación al actualizar actividad %s: %v", id, err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Validation error", "details": err.Error()})
 			return
 		}
 		log.Errorf("error al actualizar actividad %s: %v", id, err)
@@ -372,7 +415,7 @@ func (c *ActivitiesController) DeleteActivity(ctx *gin.Context) {
 	}
 
 	if err := c.service.Delete(ctx.Request.Context(), id); err != nil {
-		if err.Error() == "activity not found" {
+		if errors.Is(err, repository.ErrActivityNotFound) {
 			log.Warnf("actividad no encontrada para eliminar: %s", id)
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Activity not found"})
 			return

@@ -38,9 +38,9 @@ type SolrConfig struct {
 
 var config *Config
 
-func Load() Config {
+func Load() *Config {
 	if config != nil {
-		return *config
+		return config
 	}
 
 	log.SetOutput(os.Stderr)
@@ -98,7 +98,7 @@ func Load() Config {
 	log.Infoln("ACTIVITIES_API_URL:", config.ActivitiesAPIURL)
 	log.Infoln("===================================")
 
-	return *config
+	return config
 }
 
 func getEnv(k, def string) string {

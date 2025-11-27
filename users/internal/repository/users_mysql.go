@@ -10,6 +10,7 @@ import (
 	"users/internal/config"
 	"users/internal/dao"
 
+	mysqlerr "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 
 	"gorm.io/driver/mysql"
@@ -150,6 +151,15 @@ func (r *MySQLUsersRepository) isConnectionError(err error) bool {
 func (r *MySQLUsersRepository) Create(user dao.User) (dao.User, error) {
 	err := r.db.Create(&user).Error
 	if err != nil {
+		// Check for duplicate key error (MySQL 1062)
+		if mysqlErr, ok := err.(*mysqlerr.MySQLError); ok && mysqlErr.Number == 1062 {
+			// Determine if it's username or email duplicate
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "username") {
+				return dao.User{}, ErrDuplicateUsername
+			}
+			return dao.User{}, ErrDuplicateEmail
+		}
 		if r.isConnectionError(err) {
 			log.Errorf("error al conectar a la BDD: %s", err.Error())
 			go r.reconnect()
@@ -165,6 +175,9 @@ func (r *MySQLUsersRepository) GetUserByID(id int) (dao.User, error) {
 
 	err := r.db.Where("id_usuario = ?", id).First(&userData).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dao.User{}, ErrUserNotFound
+		}
 		if r.isConnectionError(err) {
 			log.Errorf("error al conectar a la BDD: %s", err.Error())
 			go r.reconnect()
@@ -180,6 +193,9 @@ func (r *MySQLUsersRepository) GetUserByUsername(username string) (dao.User, err
 
 	err := r.db.Where("username = ?", username).First(&usuario).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dao.User{}, ErrUserNotFound
+		}
 		if r.isConnectionError(err) {
 			log.Errorf("error al conectar a la BDD: %s", err.Error())
 			go r.reconnect()
@@ -195,6 +211,9 @@ func (r *MySQLUsersRepository) GetUserByEmail(email string) (dao.User, error) {
 
 	err := r.db.Where("email = ?", email).First(&usuario).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dao.User{}, ErrUserNotFound
+		}
 		if r.isConnectionError(err) {
 			log.Errorf("error al conectar a la BDD: %s", err.Error())
 			go r.reconnect()
@@ -236,10 +255,16 @@ func (r *MySQLUsersRepository) Update(id int, user dao.User) (dao.User, error) {
 }
 
 func (r *MySQLUsersRepository) Delete(id int) error {
-	err := r.db.Where("id_usuario = ?", id).Delete(&dao.User{}).Error
-	if r.isConnectionError(err) {
-		log.Errorf("error al conectar a la BDD: %s", err.Error())
-		go r.reconnect()
+	result := r.db.Where("id_usuario = ?", id).Delete(&dao.User{})
+	if result.Error != nil {
+		if r.isConnectionError(result.Error) {
+			log.Errorf("error al conectar a la BDD: %s", result.Error.Error())
+			go r.reconnect()
+		}
+		return result.Error
 	}
-	return err
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }

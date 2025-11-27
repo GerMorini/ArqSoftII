@@ -28,6 +28,7 @@ type UsersService interface {
 var (
 	ErrIncorrectCredentials error = errors.New("credenciales incorrectas")
 	ErrLoginFormat          error = errors.New("se debe especificar solo uno de los siguientes: username, email")
+	ErrInvalidTokenClaims   error = errors.New("error al obtener los claims")
 )
 
 type UsersServiceImpl struct {
@@ -145,7 +146,7 @@ func (s *UsersServiceImpl) GetClaimsFromToken(tokenString string) (jwt.MapClaims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		log.Errorf("error al obtener los claims\ntokenString: %s\n", tokenString)
-		return nil, errors.New("error al obtener los claims")
+		return nil, ErrInvalidTokenClaims
 	}
 
 	return claims, nil

@@ -173,7 +173,7 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 		return dto.ActivityAdministration{}, err
 	}
 	if result.MatchedCount == 0 {
-		return dto.ActivityAdministration{}, errors.New("activity not found")
+		return dto.ActivityAdministration{}, ErrActivityNotFound
 	}
 
 	return r.GetByID(ctx, id)
@@ -191,7 +191,7 @@ func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error
 		return err
 	}
 	if result.DeletedCount == 0 {
-		return errors.New("activity not found")
+		return ErrActivityNotFound
 	}
 
 	return nil
@@ -234,7 +234,7 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 	}
 
 	if len(act.UsersInscribed) >= (act.CapacidadMax) {
-		return "", errors.New("activity is full")
+		return "", ErrActivityFull
 	}
 
 	// check user not already inscribed
@@ -242,7 +242,7 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 	fmt.Sscanf(userID, "%d", &userID_int)
 	for _, uid := range act.UsersInscribed {
 		if uid == userID_int {
-			return "", errors.New("user already inscribed")
+			return "", ErrUserAlreadyInscribed
 		}
 	}
 
@@ -252,7 +252,7 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 		return "", err
 	}
 	if result.MatchedCount == 0 {
-		return "", errors.New("activity not found")
+		return "", ErrActivityNotFound
 	}
 	return id, nil
 }
@@ -283,7 +283,7 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 		}
 	}
 	if !found {
-		return "", errors.New("user not inscribed in activity")
+		return "", ErrUserNotInscribed
 	}
 
 	update := bson.M{"$pull": bson.M{"usuarios_inscritos": idint}}
@@ -292,7 +292,7 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 		return "", err
 	}
 	if result.MatchedCount == 0 {
-		return "", errors.New("activity not found")
+		return "", ErrActivityNotFound
 	}
 	return id, nil
 }

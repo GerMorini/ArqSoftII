@@ -11,6 +11,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	ErrValidation = errors.New("validation error")
+)
+
 type ActivitiesRepository interface {
 	List(ctx context.Context) ([]dto.Activity, error)
 	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
@@ -56,22 +60,22 @@ func NewActivitiesService(repo ActivitiesRepository, rabbit RabbitMQPublisher) *
 
 func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) error {
 	if strings.TrimSpace(a.Nombre) == "" {
-		return errors.New("nombre is required and cannot be empty")
+		return errors.New("titulo is required and cannot be empty")
 	}
 	if strings.TrimSpace(a.Profesor) == "" {
-		return errors.New("profesor is required and cannot be empty")
+		return errors.New("instructor is required and cannot be empty")
 	}
 	if strings.TrimSpace(a.HoraInicio) == "" || strings.TrimSpace(a.HoraFin) == "" {
-		return errors.New("horaInicio and horaFin are required and cannot be empty")
+		return errors.New("hora_inicio and hora_fin are required and cannot be empty")
 	}
 	if a.CapacidadMax == 0 {
-		return errors.New("capacidadMax is required and cannot be empty")
+		return errors.New("cupo is required and cannot be empty")
 	}
 	if a.CapacidadMax < 0 {
-		return errors.New("capacidadMax cannot be negative")
+		return errors.New("cupo cannot be negative")
 	}
 	if strings.TrimSpace(a.DiaSemana) == "" {
-		return errors.New("diaSemana is required and cannot be empty")
+		return errors.New("dia is required and cannot be empty")
 	}
 	validDays := map[string]bool{
 		"Lunes":     true,
@@ -83,7 +87,7 @@ func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) e
 		"Domingo":   true,
 	}
 	if !validDays[a.DiaSemana] {
-		return errors.New("diaSemana must be a valid day of the week (e.g., Lunes, Martes, etc.)")
+		return errors.New("dia must be a valid day of the week (e.g., Lunes, Martes, etc.)")
 	}
 
 	return nil
@@ -102,7 +106,7 @@ func (s *ActivitiesServiceImpl) GetMany(ctx context.Context, ids []string) ([]dt
 // Create valida y crea una nueva actividad
 func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	if err := s.validateActivity(activity); err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("validation error: %w", err)
+		return dto.ActivityAdministration{}, fmt.Errorf("%w: %v", ErrValidation, err)
 	}
 
 	created, err := s.repository.Create(ctx, activity)
@@ -144,14 +148,14 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 	}
 
 	if err := s.validateActivity(activity); err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("validation error: %w", err)
+		return dto.ActivityAdministration{}, fmt.Errorf("%w: %v", ErrValidation, err)
 	}
 
 	// Validar que la nueva capacidad no sea menor a la cantidad de inscritos
 	if activity.CapacidadMax > 0 {
 		var inscriptosCount int = len(currentActivity.UsersInscribed)
 		if activity.CapacidadMax < inscriptosCount {
-			return dto.ActivityAdministration{}, fmt.Errorf("capacidadMax cannot be less than the number of inscribed users (%d)", inscriptosCount)
+			return dto.ActivityAdministration{}, fmt.Errorf("%w: cupo cannot be less than the number of inscribed users (%d)", ErrValidation, inscriptosCount)
 		}
 	}
 
@@ -166,14 +170,14 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		}
 		if capToCheck > 0 {
 			if len(activity.UsersInscribed) > capToCheck {
-				return dto.ActivityAdministration{}, fmt.Errorf("number of inscritos (%d) cannot exceed capacity (%d)", len(activity.UsersInscribed), capToCheck)
+				return dto.ActivityAdministration{}, fmt.Errorf("%w: number of inscritos (%d) cannot exceed capacity (%d)", ErrValidation, len(activity.UsersInscribed), capToCheck)
 			}
 		}
 	}
 
 	updated, err := s.repository.Update(ctx, id, activity)
 	if err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("error updating activity in repository: %w", err)
+		return dto.ActivityAdministration{}, err
 	}
 
 	if err := s.rabbitPublisher.Publish(ctx, "update", updated.ID); err != nil {
@@ -201,7 +205,7 @@ func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 	}
 
 	if err := s.repository.Delete(ctx, id); err != nil {
-		return fmt.Errorf("error deleting activity in repository: %w", err)
+		return err
 	}
 
 	if err := s.rabbitPublisher.Publish(ctx, "delete", activityToDelete.ID); err != nil {
