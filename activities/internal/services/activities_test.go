@@ -96,12 +96,12 @@ func (m *mockRepo) ListAllForAdmin(ctx context.Context) ([]dto.ActivityAdministr
 }
 
 type mockRabbit struct {
-	publishFunc func(ctx context.Context, action string, id string, nombre string, descripcion string, dia string) error
+	publishFunc func(ctx context.Context, action string, id string) error
 }
 
-func (m *mockRabbit) Publish(ctx context.Context, action string, id string, nombre string, descripcion string, dia string) error {
+func (m *mockRabbit) Publish(ctx context.Context, action string, id string) error {
 	if m.publishFunc != nil {
-		return m.publishFunc(ctx, action, id, nombre, descripcion, dia)
+		return m.publishFunc(ctx, action, id)
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func TestCreate(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return nil
 			},
 		}
@@ -236,7 +236,7 @@ func TestCreate(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return errors.New("rabbitmq error")
 			},
 		}
@@ -290,7 +290,7 @@ func TestUpdate(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return nil
 			},
 		}
@@ -395,7 +395,7 @@ func TestUpdate(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return errors.New("rabbitmq error")
 			},
 		}
@@ -436,7 +436,7 @@ func TestDelete(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return nil
 			},
 		}
@@ -500,7 +500,7 @@ func TestDelete(t *testing.T) {
 			},
 		}
 		mockRabbit := &mockRabbit{
-			publishFunc: func(ctx context.Context, action, id, nombre, descripcion, dia string) error {
+			publishFunc: func(ctx context.Context, action, id string) error {
 				return errors.New("rabbitmq error")
 			},
 		}

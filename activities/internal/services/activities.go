@@ -39,7 +39,7 @@ type ActivitiesService interface {
 }
 
 type RabbitMQPublisher interface {
-	Publish(ctx context.Context, action string, id string, nombre string, descripcion string, dia string) error
+	Publish(ctx context.Context, action string, id string) error
 }
 
 type ActivitiesServiceImpl struct {
@@ -110,7 +110,7 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 		return dto.ActivityAdministration{}, fmt.Errorf("error creating activity in repository: %w", err)
 	}
 
-	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID, created.Nombre, created.Descripcion, created.DiaSemana); err != nil {
+	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID); err != nil {
 		log.Errorf("Failed to publish create event for activity %s: %v", created.ID, err)
 
 		// Rollback: delete the created activity from MongoDB
@@ -176,7 +176,7 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		return dto.ActivityAdministration{}, fmt.Errorf("error updating activity in repository: %w", err)
 	}
 
-	if err := s.rabbitPublisher.Publish(ctx, "update", updated.ID, updated.Nombre, updated.Descripcion, updated.DiaSemana); err != nil {
+	if err := s.rabbitPublisher.Publish(ctx, "update", updated.ID); err != nil {
 		log.Errorf("Failed to publish update event for activity %s: %v", id, err)
 
 		// Rollback: restore the original activity in MongoDB
@@ -204,7 +204,7 @@ func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("error deleting activity in repository: %w", err)
 	}
 
-	if err := s.rabbitPublisher.Publish(ctx, "delete", activityToDelete.ID, activityToDelete.Nombre, activityToDelete.Descripcion, activityToDelete.DiaSemana); err != nil {
+	if err := s.rabbitPublisher.Publish(ctx, "delete", activityToDelete.ID); err != nil {
 		log.Errorf("Failed to publish delete event for activity %s: %v", id, err)
 
 		// Rollback: restore the deleted activity in MongoDB

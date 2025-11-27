@@ -36,7 +36,13 @@ type SolrConfig struct {
 	Core string
 }
 
+var config *Config
+
 func Load() Config {
+	if config != nil {
+		return *config
+	}
+
 	log.SetOutput(os.Stderr)
 	// log.SetFormatter(&log.JSONFormatter{})
 	log.SetFormatter(&log.TextFormatter{
@@ -54,7 +60,7 @@ func Load() Config {
 		memcachedTTL = 60
 	}
 
-	cfg := Config{
+	config = &Config{
 		Port: getEnv("PORT", "8080"),
 		Memcached: MemcachedConfig{
 			Host:       getEnv("MEMCACHED_HOST", "localhost"),
@@ -77,22 +83,22 @@ func Load() Config {
 	}
 
 	log.Infoln("========== CONFIGURACIÓN ==========")
-	log.Infoln("PORT:", cfg.Port)
-	log.Infoln("MEMCACHED_HOST:", cfg.Memcached.Host)
-	log.Infoln("MEMCACHED_PORT:", cfg.Memcached.Port)
-	log.Infoln("MEMCACHED_TTL_SECONDS:", cfg.Memcached.TTLSeconds)
-	log.Infoln("RABBITMQ_USER:", cfg.RabbitMQ.Username)
-	log.Infoln("RABBITMQ_PASS:", cfg.RabbitMQ.Password)
-	log.Infoln("RABBITMQ_QUEUE_NAME:", cfg.RabbitMQ.QueueName)
-	log.Infoln("RABBITMQ_HOST:", cfg.RabbitMQ.Host)
-	log.Infoln("RABBITMQ_PORT:", cfg.RabbitMQ.Port)
-	log.Infoln("SOLR_HOST", cfg.Solr.Host)
-	log.Infoln("SOLR_PORT", cfg.Solr.Port)
-	log.Infoln("SOLR_CORE", cfg.Solr.Core)
-	log.Infoln("ACTIVITIES_API_URL:", cfg.ActivitiesAPIURL)
+	log.Infoln("PORT:", config.Port)
+	log.Infoln("MEMCACHED_HOST:", config.Memcached.Host)
+	log.Infoln("MEMCACHED_PORT:", config.Memcached.Port)
+	log.Infoln("MEMCACHED_TTL_SECONDS:", config.Memcached.TTLSeconds)
+	log.Infoln("RABBITMQ_USER:", config.RabbitMQ.Username)
+	log.Infoln("RABBITMQ_PASS:", config.RabbitMQ.Password)
+	log.Infoln("RABBITMQ_QUEUE_NAME:", config.RabbitMQ.QueueName)
+	log.Infoln("RABBITMQ_HOST:", config.RabbitMQ.Host)
+	log.Infoln("RABBITMQ_PORT:", config.RabbitMQ.Port)
+	log.Infoln("SOLR_HOST", config.Solr.Host)
+	log.Infoln("SOLR_PORT", config.Solr.Port)
+	log.Infoln("SOLR_CORE", config.Solr.Core)
+	log.Infoln("ACTIVITIES_API_URL:", config.ActivitiesAPIURL)
 	log.Infoln("===================================")
 
-	return cfg
+	return *config
 }
 
 func getEnv(k, def string) string {

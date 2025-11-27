@@ -2,19 +2,20 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"search/internal/config"
 	"search/internal/dto"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type ActivityEvent struct {
-	Action      string `json:"action"`
-	ID          string `json:"id"`
-	Nombre      string `json:"nombre"`
-	Descripcion string `json:"descripcion"`
-	Dia         string `json:"dia"`
+	Action string `json:"action"`
+	ID     string `json:"id"`
 }
 
 type ActivitiesRepository interface {
@@ -97,6 +98,62 @@ func (s *ActiviesServiceImpl) List(ctx context.Context, filters dto.SearchFilter
 	return dto.PaginatedResponse{}, err
 }
 
+// activityFromActivitiesAPI represents the activity structure from activities service API
+type activityFromActivitiesAPI struct {
+	ID          string `json:"id_actividad"`
+	Titulo      string `json:"titulo"`
+	Descripcion string `json:"descripcion"`
+	DiaSemana   string `json:"dia"`
+}
+
+// fetchActivityByID makes an HTTP GET request to activities service to fetch activity details
+func (s *ActiviesServiceImpl) fetchActivityByID(ctx context.Context, activityID string) (dto.Activity, error) {
+	activitiesURL := config.Load().ActivitiesAPIURL
+	if activitiesURL == "" {
+		return dto.Activity{}, fmt.Errorf("ACTIVITIES_API_URL not configured")
+	}
+
+	url := fmt.Sprintf("%s/activities/many?ids=%s", activitiesURL, activityID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return dto.Activity{}, fmt.Errorf("error creating request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return dto.Activity{}, fmt.Errorf("error making HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return dto.Activity{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var response struct {
+		Activities []activityFromActivitiesAPI `json:"activities"`
+		Count      int                         `json:"count"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return dto.Activity{}, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if len(response.Activities) == 0 {
+		return dto.Activity{}, fmt.Errorf("activity not found: %s", activityID)
+	}
+
+	// Map from activities API DTO to search DTO
+	apiActivity := response.Activities[0]
+	return dto.Activity{
+		ID:          apiActivity.ID,
+		Titulo:      apiActivity.Titulo,
+		Descripcion: apiActivity.Descripcion,
+		DiaSemana:   apiActivity.DiaSemana,
+	}, nil
+}
+
 func (s *ActiviesServiceImpl) InitConsumer(ctx context.Context) {
 	slog.Info("🐰 Starting RabbitMQ consumer...")
 
@@ -110,21 +167,20 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 	slog.Info("📨 Processing message",
 		slog.String("action", message.Action),
 		slog.String("id", message.ID),
-		slog.String("nombre", message.Nombre),
-		slog.String("descripcion", message.Descripcion),
-		slog.String("dia", message.Dia),
 	)
-
-	activity := dto.Activity{
-		ID:          message.ID,
-		Titulo:      message.Nombre,
-		Descripcion: message.Descripcion,
-		DiaSemana:   message.Dia,
-	}
 
 	switch message.Action {
 	case "create":
-		slog.Info("✅ Activity created", slog.String("activity_id", message.ID))
+		// Fetch activity details from activities service
+		activity, err := s.fetchActivityByID(ctx, message.ID)
+		if err != nil {
+			slog.Error("❌ Error fetching activity from activities service",
+				slog.String("activity_id", message.ID),
+				slog.String("error", err.Error()))
+			return fmt.Errorf("error fetching activity: %w", err)
+		}
+
+		slog.Info("✅ Activity fetched from activities service", slog.String("activity_id", activity.ID))
 
 		// Index in SolR
 		if _, err := s.search.Create(ctx, activity); err != nil {
@@ -146,11 +202,21 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 		}
 
 		slog.Info("🔍 Activity indexed in search engine", slog.String("activity_id", message.ID))
+
 	case "update":
-		slog.Info("✏️ Activity updated", slog.String("activity_id", message.ID))
+		// Fetch updated activity details from activities service
+		activity, err := s.fetchActivityByID(ctx, message.ID)
+		if err != nil {
+			slog.Error("❌ Error fetching activity from activities service",
+				slog.String("activity_id", message.ID),
+				slog.String("error", err.Error()))
+			return fmt.Errorf("error fetching activity: %w", err)
+		}
+
+		slog.Info("✏️ Activity fetched from activities service", slog.String("activity_id", activity.ID))
 
 		// Reindex in SolR
-		_, err := s.search.Update(ctx, message.ID, activity)
+		_, err = s.search.Update(ctx, message.ID, activity)
 		if err != nil {
 			slog.Error("❌ Error reindexing activity in search",
 				slog.String("activity_id", message.ID),
@@ -170,6 +236,7 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 		}
 
 		slog.Info("🔍 Activity reindexed in search engine", slog.String("activity_id", message.ID))
+
 	case "delete":
 		slog.Info("🗑️ Activity deleted", slog.String("activity_id", message.ID))
 
@@ -194,6 +261,7 @@ func (s *ActiviesServiceImpl) handleMessage(ctx context.Context, message Activit
 		}
 
 		slog.Info("🗑️ Activity deleted from search engine", slog.String("activity_id", message.ID))
+
 	default:
 		slog.Info("⚠️ Unknown action", slog.String("action", message.Action))
 	}

@@ -55,9 +55,6 @@ func main() {
 			ctx,
 			"create",
 			activity.ID,
-			activity.Nombre,
-			activity.Descripcion,
-			activity.DiaSemana,
 		)
 		if err != nil {
 			log.Errorf("Failed to publish activity %s (%s): %v", activity.ID, activity.Nombre, err)

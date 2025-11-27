@@ -18,11 +18,8 @@ type RabbitMQClient struct {
 }
 
 type ActivityEvent struct {
-	Action      string `json:"action"`
-	ID          string `json:"id"`
-	Nombre      string `json:"nombre"`
-	Descripcion string `json:"descripcion"`
-	Dia         string `json:"dia"`
+	Action string `json:"action"`
+	ID     string `json:"id"`
 }
 
 // NewRabbitMQClient intenta conectar con reintentos exponenciales
@@ -63,8 +60,8 @@ func NewRabbitMQClient(host, port, user, pass, queueName string) (*RabbitMQClien
 }
 
 // Publish publica un evento de actividad
-func (r *RabbitMQClient) Publish(ctx context.Context, action, id, nombre, descripcion, dia string) error {
-	ev := ActivityEvent{Action: action, ID: id, Nombre: nombre, Descripcion: descripcion, Dia: dia}
+func (r *RabbitMQClient) Publish(ctx context.Context, action, id string) error {
+	ev := ActivityEvent{Action: action, ID: id}
 	b, err := json.Marshal(ev)
 	if err != nil {
 		return err
