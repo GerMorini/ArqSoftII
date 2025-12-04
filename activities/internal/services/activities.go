@@ -11,10 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	ErrValidation = errors.New("validation error")
-)
-
 type ActivitiesRepository interface {
 	List(ctx context.Context) ([]dto.Activity, error)
 	GetMany(ctx context.Context, ids []string) ([]dto.Activity, error)
@@ -60,22 +56,22 @@ func NewActivitiesService(repo ActivitiesRepository, rabbit RabbitMQPublisher) *
 
 func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) error {
 	if strings.TrimSpace(a.Nombre) == "" {
-		return errors.New("titulo is required and cannot be empty")
+		return ErrTitleRequired
 	}
 	if strings.TrimSpace(a.Profesor) == "" {
-		return errors.New("instructor is required and cannot be empty")
+		return ErrInstructorRequired
 	}
 	if strings.TrimSpace(a.HoraInicio) == "" || strings.TrimSpace(a.HoraFin) == "" {
-		return errors.New("hora_inicio and hora_fin are required and cannot be empty")
+		return ErrTimeRequired
 	}
 	if a.CapacidadMax == 0 {
-		return errors.New("cupo is required and cannot be empty")
+		return ErrCapacityRequired
 	}
 	if a.CapacidadMax < 0 {
-		return errors.New("cupo cannot be negative")
+		return ErrCapacityNegative
 	}
 	if strings.TrimSpace(a.DiaSemana) == "" {
-		return errors.New("dia is required and cannot be empty")
+		return ErrDayRequired
 	}
 	validDays := map[string]bool{
 		"Lunes":     true,
@@ -87,7 +83,7 @@ func (s *ActivitiesServiceImpl) validateActivity(a dto.ActivityAdministration) e
 		"Domingo":   true,
 	}
 	if !validDays[a.DiaSemana] {
-		return errors.New("dia must be a valid day of the week (e.g., Lunes, Martes, etc.)")
+		return ErrInvalidDay
 	}
 
 	return nil
@@ -106,12 +102,12 @@ func (s *ActivitiesServiceImpl) GetMany(ctx context.Context, ids []string) ([]dt
 // Create valida y crea una nueva actividad
 func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	if err := s.validateActivity(activity); err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("%w: %v", ErrValidation, err)
+		return dto.ActivityAdministration{}, errors.Join(ErrValidation, err)
 	}
 
 	created, err := s.repository.Create(ctx, activity)
 	if err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("error creating activity in repository: %w", err)
+		return dto.ActivityAdministration{}, errors.Join(ErrCreatingActivityInRepository, err)
 	}
 
 	if err := s.rabbitPublisher.Publish(ctx, "create", created.ID); err != nil {
@@ -120,11 +116,11 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 		// Rollback: delete the created activity from MongoDB
 		if deleteErr := s.repository.Delete(ctx, created.ID); deleteErr != nil {
 			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", created.ID, deleteErr)
-			return dto.ActivityAdministration{}, fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, deleteErr)
+			return dto.ActivityAdministration{}, errors.Join(ErrPublishEventFailed, ErrRollbackFailed, err, deleteErr)
 		}
 
 		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", created.ID)
-		return dto.ActivityAdministration{}, fmt.Errorf("failed to publish create event, activity rolled back: %w", err)
+		return dto.ActivityAdministration{}, errors.Join(ErrPublishEventFailed, err)
 	}
 
 	log.Infof("Activity %s created and event published successfully", created.ID)
@@ -135,7 +131,7 @@ func (s *ActivitiesServiceImpl) Create(ctx context.Context, activity dto.Activit
 func (s *ActivitiesServiceImpl) GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error) {
 	act, err := s.repository.GetByID(ctx, id)
 	if err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("error getting activity from repository: %w", err)
+		return dto.ActivityAdministration{}, errors.Join(ErrGettingActivityFromRepository, err)
 	}
 	return act, nil
 }
@@ -144,11 +140,11 @@ func (s *ActivitiesServiceImpl) GetByID(ctx context.Context, id string) (dto.Act
 func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	currentActivity, err := s.repository.GetByID(ctx, id)
 	if err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("activity does not exist: %w", err)
+		return dto.ActivityAdministration{}, errors.Join(ErrActivityDoesNotExist, err)
 	}
 
 	if err := s.validateActivity(activity); err != nil {
-		return dto.ActivityAdministration{}, fmt.Errorf("%w: %v", ErrValidation, err)
+		return dto.ActivityAdministration{}, errors.Join(ErrValidation, err)
 	}
 
 	// Validar que la nueva capacidad no sea menor a la cantidad de inscritos
@@ -186,11 +182,11 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 		// Rollback: restore the original activity in MongoDB
 		if _, restoreErr := s.repository.Update(ctx, id, currentActivity); restoreErr != nil {
 			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", id, restoreErr)
-			return dto.ActivityAdministration{}, fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, restoreErr)
+			return dto.ActivityAdministration{}, errors.Join(ErrPublishEventFailed, ErrRollbackFailed, err, restoreErr)
 		}
 
 		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", id)
-		return dto.ActivityAdministration{}, fmt.Errorf("failed to publish update event, activity rolled back: %w", err)
+		return dto.ActivityAdministration{}, errors.Join(ErrPublishEventFailed, err)
 	}
 
 	log.Infof("Activity %s updated and event published successfully", id)
@@ -201,7 +197,7 @@ func (s *ActivitiesServiceImpl) Update(ctx context.Context, id string, activity 
 func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 	activityToDelete, err := s.repository.GetByID(ctx, id)
 	if err != nil {
-		return fmt.Errorf("activity does not exist: %w", err)
+		return errors.Join(ErrActivityDoesNotExist, err)
 	}
 
 	if err := s.repository.Delete(ctx, id); err != nil {
@@ -214,11 +210,11 @@ func (s *ActivitiesServiceImpl) Delete(ctx context.Context, id string) error {
 		// Rollback: restore the deleted activity in MongoDB
 		if _, restoreErr := s.repository.Create(ctx, activityToDelete); restoreErr != nil {
 			log.Errorf("CRITICAL: Failed to rollback activity %s after RabbitMQ publish failure: %v", id, restoreErr)
-			return fmt.Errorf("failed to publish event and rollback failed: publish error: %w, rollback error: %v", err, restoreErr)
+			return errors.Join(ErrPublishEventFailed, ErrRollbackFailed, err, restoreErr)
 		}
 
 		log.Warnf("Successfully rolled back activity %s after RabbitMQ publish failure", id)
-		return fmt.Errorf("failed to publish delete event, activity rolled back: %w", err)
+		return errors.Join(ErrPublishEventFailed, err)
 	}
 
 	log.Infof("Activity %s deleted and event published successfully", id)

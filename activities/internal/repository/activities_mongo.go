@@ -5,7 +5,6 @@ import (
 	"activities/internal/dto"
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -115,7 +114,7 @@ func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.Act
 	_, err := r.col.InsertOne(ctx, activityDAO)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return dto.ActivityAdministration{}, errors.New("activity with the same ID already exists")
+			return dto.ActivityAdministration{}, ErrActivityAlreadyExists
 		}
 		return dto.ActivityAdministration{}, err
 	}
@@ -127,7 +126,7 @@ func (r *MongoActivitiesRepository) Create(ctx context.Context, activity dto.Act
 func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activity dto.ActivityAdministration) (dto.ActivityAdministration, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return dto.ActivityAdministration{}, errors.New("invalid ID format")
+		return dto.ActivityAdministration{}, ErrInvalidIDFormat
 	}
 
 	// Preparar los campos a actualizar
@@ -162,7 +161,7 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 		set["usuarios_inscritos"] = activity.UsersInscribed
 	}
 	if len(set) == 0 {
-		return dto.ActivityAdministration{}, errors.New("no fields to update")
+		return dto.ActivityAdministration{}, ErrNoFieldsToUpdate
 	}
 	set["fecha_creacion"] = time.Now().UTC()
 
@@ -183,7 +182,7 @@ func (r *MongoActivitiesRepository) Update(ctx context.Context, id string, activ
 func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return errors.New("invalid ID format")
+		return ErrInvalidIDFormat
 	}
 
 	result, err := r.col.DeleteOne(ctx, bson.M{"_id": objID})
@@ -201,7 +200,7 @@ func (r *MongoActivitiesRepository) Delete(ctx context.Context, id string) error
 func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto.ActivityAdministration, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return dto.ActivityAdministration{}, errors.New("invalid ID format")
+		return dto.ActivityAdministration{}, ErrInvalidIDFormat
 	}
 
 	var activityDAO dao.ActivityDAO
@@ -209,7 +208,7 @@ func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto
 	if err != nil {
 		// Manejar caso de no encontrado
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return dto.ActivityAdministration{}, errors.New("activity not found")
+			return dto.ActivityAdministration{}, ErrActivityNotFound
 		}
 		return dto.ActivityAdministration{}, err
 	}
@@ -220,17 +219,17 @@ func (r *MongoActivitiesRepository) GetByID(ctx context.Context, id string) (dto
 func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, userID string) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return "", errors.New("invalid ID format")
+		return "", ErrInvalidIDFormat
 	}
 
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
-		return "", fmt.Errorf("error converting userID to int: %w", err)
+		return "", ErrInvalidUserID
 	}
 
 	act, err := r.GetByID(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("error getting activity from repository: %w", err)
+		return "", ErrActivityNotFound
 	}
 
 	if len(act.UsersInscribed) >= (act.CapacidadMax) {
@@ -238,10 +237,8 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 	}
 
 	// check user not already inscribed
-	var userID_int int
-	fmt.Sscanf(userID, "%d", &userID_int)
 	for _, uid := range act.UsersInscribed {
-		if uid == userID_int {
+		if uid == idint {
 			return "", ErrUserAlreadyInscribed
 		}
 	}
@@ -260,24 +257,22 @@ func (r *MongoActivitiesRepository) Inscribir(ctx context.Context, id string, us
 func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string, userID string) (string, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return "", errors.New("invalid ID format")
+		return "", ErrInvalidIDFormat
 	}
 
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
-		return "", fmt.Errorf("error converting userID to int: %w", err)
+		return "", ErrInvalidUserID
 	}
 
 	act, err := r.GetByID(ctx, id)
 	if err != nil {
-		return "", fmt.Errorf("error getting activity from repository: %w", err)
+		return "", ErrActivityNotFound
 	}
 
 	found := false
-	var userID_int int
-	fmt.Sscanf(userID, "%d", &userID_int)
 	for _, uid := range act.UsersInscribed {
-		if uid == userID_int {
+		if uid == idint {
 			found = true
 			break
 		}
@@ -300,7 +295,7 @@ func (r *MongoActivitiesRepository) Desinscribir(ctx context.Context, id string,
 func (r *MongoActivitiesRepository) GetInscripcionesByUserID(ctx context.Context, userID string) ([]string, error) {
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
-		return nil, fmt.Errorf("error converting userID to int: %w", err)
+		return nil, ErrInvalidUserID
 	}
 
 	cur, err := r.col.Find(ctx, bson.M{"usuarios_inscritos": idint})
@@ -324,7 +319,14 @@ func (r *MongoActivitiesRepository) GetInscripcionesByUserID(ctx context.Context
 func (r *MongoActivitiesRepository) GetActivitiesByUserID(ctx context.Context, userID string) (dto.Activities, error) {
 	idint, err := strconv.Atoi(userID)
 	if err != nil {
-		return nil, fmt.Errorf("error converting userID to int: %w", err)
+		return nil, ErrInvalidUserID
+	}
+
+	// Aplicar timeout si el contexto no lo tiene
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 	}
 
 	cur, err := r.col.Find(ctx, bson.M{"usuarios_inscritos": idint})

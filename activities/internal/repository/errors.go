@@ -1,10 +1,17 @@
 package repository
 
-import "errors"
+import (
+	"activities/internal/errors"
+)
 
+// Re-export errors from the central errors package for backward compatibility
 var (
-	ErrActivityNotFound     = errors.New("activity not found")
-	ErrActivityFull         = errors.New("activity is full")
-	ErrUserAlreadyInscribed = errors.New("user already inscribed")
-	ErrUserNotInscribed     = errors.New("user not inscribed in activity")
+	ErrActivityNotFound      = errors.ErrActivityNotFound
+	ErrActivityFull          = errors.ErrActivityFull
+	ErrUserAlreadyInscribed  = errors.ErrUserAlreadyInscribed
+	ErrUserNotInscribed      = errors.ErrUserNotInscribed
+	ErrNoFieldsToUpdate      = errors.ErrNoFieldsToUpdate
+	ErrInvalidUserID         = errors.ErrInvalidUserID
+	ErrInvalidIDFormat       = errors.ErrInvalidIDFormat
+	ErrActivityAlreadyExists = errors.ErrActivityAlreadyExists
 )

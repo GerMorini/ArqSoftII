@@ -500,7 +500,7 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 		return
 	}
 
-	activities, err := c.service.GetActivitiesByUserID(ctx, userID)
+	activities, err := c.service.GetActivitiesByUserID(ctx.Request.Context(), userID)
 	if err != nil {
 		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
