@@ -426,7 +426,7 @@ func (c *ActivitiesController) DeleteActivity(ctx *gin.Context) {
 	}
 
 	log.Infof("actividad %s eliminada exitosamente por usuario: %s", id, claims["username"])
-	ctx.JSON(http.StatusNoContent, nil)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetInscripcionesByUserID maneja GET /inscriptions/:userId
@@ -461,6 +461,11 @@ func (c *ActivitiesController) GetInscripcionesByUserID(ctx *gin.Context) {
 
 	inscripciones, err := c.service.GetInscripcionesByUserID(ctx.Request.Context(), userID)
 	if err != nil {
+		if errors.Is(err, repository.ErrInvalidUserID) {
+			log.Warnf("userId invalido: %s", userID)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
+			return
+		}
 		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
 		return
@@ -502,8 +507,13 @@ func (c *ActivitiesController) GetInscribedActivities(ctx *gin.Context) {
 
 	activities, err := c.service.GetActivitiesByUserID(ctx.Request.Context(), userID)
 	if err != nil {
+		if errors.Is(err, repository.ErrInvalidUserID) {
+			log.Warnf("userId invalido al obtener actividades inscritas: %s", userID)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
+			return
+		}
 		log.Errorf("error al obtener inscripciones para usuario %s: %v", userID, err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch inscripciones", "details": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch activities", "details": err.Error()})
 		return
 	}
 
